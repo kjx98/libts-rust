@@ -4,13 +4,13 @@
 /// a new [`Measure`], evaluate your expression, stop the [`Measure`], and then return the
 /// [`Measure`] object along with your expression's return value.
 ///
-/// [`Measure`]: crate::measure::Measure
+/// [`Measure`]: crate::libts::measure::Measure
 ///
 /// # Examples
 ///
 /// ```
 /// // Measure functions
-/// # use crate::measure::measure;
+/// # use crate::libts::measure;
 /// # fn foo() {}
 /// # fn bar(x: i32) {}
 /// # fn add(x: i32, y: i32) -> i32 {x + y}
@@ -22,7 +22,7 @@
 ///
 /// ```
 /// // Measure methods
-/// # use crate::measure::measure;
+/// # use crate::libts::measure;
 /// # struct Foo {
 /// #     f: i32,
 /// # }
@@ -38,7 +38,7 @@
 ///
 /// ```
 /// // Measure expression blocks
-/// # use crate::measure::measure;
+/// # use crate::libts::measure;
 /// # fn complex_calculation() -> i32 { 42 }
 /// # fn complex_transform(x: i32) -> i32 { x + 3 }
 /// # fn record_result(y: i32) {}
@@ -58,7 +58,7 @@
 ///
 /// ```
 /// // The `name` parameter is optional
-/// # use crate::measure::measure;
+/// # use crate::libts::measure;
 /// # fn meow() {};
 /// let (result, measure) = measure!(meow());
 /// ```

@@ -1,6 +1,8 @@
 //#[macro_use(lazy_static)]
 //extern crate lazy_static;
 
+pub mod measure;
+
 //#[cfg(target_endian = "little")]
 
 #[cfg(test)]

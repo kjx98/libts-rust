@@ -118,6 +118,11 @@ mod x86 {
         pub fn as_ms(&self) -> u64 {
             self.duration / (1000 * 1000)
         }
+        pub fn as_s(&self) -> f64 {
+            //self.duration as f64 / 1_000_000_000.0f64
+            // divid slower than multiply
+            self.duration as f64 * 0.000_000_001f64
+        }
     }
 
     impl fmt::Display for MeasureTsc {
@@ -183,7 +188,7 @@ impl Measure {
     ///
     /// ```
     /// // Call a function with a single argument
-    /// # use crate::measure::Measure;
+    /// # use crate::libts::measure::Measure;
     /// # fn my_function(fizz: i32) -> i32 { fizz }
     /// let (result, measure) = Measure::this(my_function, 42, "my_func");
     /// # assert_eq!(result, 42);
@@ -191,14 +196,14 @@ impl Measure {
     ///
     /// ```
     /// // Call a function with multiple arguments
-    /// # use crate::measure::Measure;
+    /// # use crate::libts::measure::Measure;
     /// let (result, measure) = Measure::this(|(arg1, arg2)| std::cmp::min(arg1, arg2), (42, 123), "minimum");
     /// # assert_eq!(result, 42);
     /// ```
     ///
     /// ```
     /// // Call a method
-    /// # use crate::measure::Measure;
+    /// # use crate::libts::measure::Measure;
     /// # struct Foo { x: i32 }
     /// # impl Foo { fn bar(&self, arg: i32) -> i32 { self.x + arg } }
     /// # let baz = 8;

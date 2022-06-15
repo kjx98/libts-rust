@@ -4,7 +4,7 @@ pub mod measure;
 
 #[cfg(feature = "tsc")]
 #[cfg(target_arch = "x86_64")]
-pub use crate::measure::MeasureTsc as Measure;
+pub use self::measure::MeasureTsc as Measure;
 
 #[cfg(not(feature = "tsc"))]
-pub use crate::measure::Measure;
+pub use self::measure::Measure;

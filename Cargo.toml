@@ -20,7 +20,6 @@ rand = "0.4"
 # lazy_static = "1.4"
 
 [dev-dependencies]
-measure = { path = "measure" }
 bencher = "0.1"
 
 [dependencies.simple_logger]
@@ -31,8 +30,7 @@ features = ["timestamps", "colors"]
 [features]
 default = [ ]
 asm = []
-mont_d = []
-tsc = [ "measure/tsc" ]
+tsc = []
 
 [[bench]]
 name = "test"
