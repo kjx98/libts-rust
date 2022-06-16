@@ -1,8 +1,8 @@
 //#[macro_use(lazy_static)]
 //extern crate lazy_static;
 
-pub mod measure;
 mod julian;
+pub mod measure;
 mod price_type;
 
 #[cfg(target_arch = "x86_64")]

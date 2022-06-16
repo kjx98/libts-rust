@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Eq, Clone)]
-pub struct Julian (i32);
+pub struct Julian(i32);
 
 // Julian Date for 1970-01-01
 const TS3_JULIAN_EPOCH: i32 = 2440588;
@@ -20,7 +20,7 @@ impl PartialEq for Julian {
 
 impl fmt::Display for Julian {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (y, m , d) = self.date();
+        let (y, m, d) = self.date();
         write!(f, "{}-{:02}-{:02}", y, m, d)
     }
 }
@@ -63,21 +63,23 @@ impl Julian {
         Julian::new_jdn(yr, mon, mday)
     }
     fn new_jdn(yr: i32, mon: i32, mday: i32) -> Option<Julian> {
-        if mon < 1 || mon > 12 || mday < 1 || mday > 31 { return None; }
-        let res = (1461 * (yr + 4800 + (mon-14)/12)) / 4;
-        let res = res + (367 * (mon - 2 - 12*((mon-14)/12))) / 12;
-        let res = res - (3 * ((yr + 4900 + (mon-14)/12) / 100)) / 4;
+        if mon < 1 || mon > 12 || mday < 1 || mday > 31 {
+            return None;
+        }
+        let res = (1461 * (yr + 4800 + (mon - 14) / 12)) / 4;
+        let res = res + (367 * (mon - 2 - 12 * ((mon - 14) / 12))) / 12;
+        let res = res - (3 * ((yr + 4900 + (mon - 14) / 12) / 100)) / 4;
         let res = res + mday - 32075;
         Some(Julian(res))
     }
     pub fn date(&self) -> (i32, i32, i32) {
-        let f = self.0 + 1401 + (((4*self.0+274277)/146097)*3)/4 - 38;
-        let e = 4*f + 3;
+        let f = self.0 + 1401 + (((4 * self.0 + 274277) / 146097) * 3) / 4 - 38;
+        let e = 4 * f + 3;
         let g = (e % 1461) / 4;
-        let h = 5*g + 2;
-        let d = (h%153)/5 + 1;
-        let m = (h/153+2)%12 + 1;
-        let y = e/1461 - 4716 + (12+2-m)/12;
+        let h = 5 * g + 2;
+        let d = (h % 153) / 5 + 1;
+        let m = (h / 153 + 2) % 12 + 1;
+        let y = e / 1461 - 4716 + (12 + 2 - m) / 12;
         (y, m, d)
     }
     // return julian date number
@@ -87,7 +89,7 @@ impl Julian {
     pub fn to_time_t(&self) -> u64 {
         debug_assert!(self.0 >= TS3_JULIAN_EPOCH);
         let res: u64 = (self.0 - TS3_JULIAN_EPOCH) as u64;
-        let res = res * 3600* 24;
+        let res = res * 3600 * 24;
         res
     }
 }

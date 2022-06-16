@@ -1,7 +1,7 @@
-use {
-    std::{fmt, time::{Duration, Instant}},
+use std::{
+    fmt,
+    time::{Duration, Instant},
 };
-
 
 #[derive(Debug)]
 pub struct Measure {
@@ -23,30 +23,19 @@ mod x86 {
     static mut DUR_TEST: u64 = 0;
     static mut TICKS_TEST: u64 = 1;
     static mut TICKS_OVERHEAD: u64 = 1_000_000;
-    use std::fmt;
-    use std::time::{Instant, Duration};
     use super::duration_as_ns;
+    use std::fmt;
+    use std::time::{Duration, Instant};
 
     // x86_64 CPU support rdtscp
-    use crate::x86::check_rdtscp;
-
-    fn rdtscp() -> u64 {
-        use std::arch::asm;
-        let edx: u32;
-        let eax: u32;
-        unsafe {
-            asm!("rdtscp",
-                 out("edx") edx,
-                 out("eax") eax,
-                 out("cx") _);
-        }
-        ((edx as u64) << 32) + (eax as u64)
-    }
+    use crate::x86::{check_rdtscp, rdtscp};
 
     fn calibration() {
-        if ! check_rdtscp() { panic!("No RDTSCP support!"); }
+        if !check_rdtscp() {
+            panic!("No RDTSCP support!");
+        }
         // calibrication overhead
-        for _i in 0 .. 100 {
+        for _i in 0..100 {
             let start = rdtscp();
             let stop = rdtscp();
             let diff = stop - start;
@@ -61,7 +50,7 @@ mod x86 {
         std::thread::sleep(Duration::from_millis(100));
         let stop = rdtscp();
         unsafe {
-            DUR_TEST = duration_as_ns(& t_start.elapsed());
+            DUR_TEST = duration_as_ns(&t_start.elapsed());
             TICKS_TEST = stop - start;
         }
     }
@@ -70,9 +59,7 @@ mod x86 {
         INIT.call_once(|| {
             calibration();
         });
-        let ticks_us: f32 = unsafe {
-                        TICKS_TEST as f32 / DUR_TEST as f32
-        };
+        let ticks_us: f32 = unsafe { TICKS_TEST as f32 / DUR_TEST as f32 };
         format!("rdtscp ticks {:.3} per ns", ticks_us)
     }
 
@@ -97,10 +84,7 @@ mod x86 {
         }
         pub fn stop(&mut self) {
             self.ticks = unsafe { rdtscp() - self.start - TICKS_OVERHEAD };
-            self.duration = unsafe { self.ticks
-                    .saturating_mul(DUR_TEST)
-                    / TICKS_TEST
-            }
+            self.duration = unsafe { self.ticks.saturating_mul(DUR_TEST) / TICKS_TEST }
         }
         pub fn as_ticks(&self) -> u64 {
             self.ticks
@@ -251,13 +235,13 @@ mod tests {
     #[test]
     #[cfg(target_arch = "x86_64")]
     fn test_measure_tsc() {
-        use super::{MeasureTsc, x86::tsc_status};
+        use super::{x86::tsc_status, MeasureTsc};
         use crate::x86;
         if x86::check_rdtscp() {
             println!("tsc status: {}", tsc_status());
         } else {
             println!("NO rdtscp SUPPORT");
-            return
+            return;
         }
         let mut measure = MeasureTsc::start("test");
         sleep(Duration::from_secs(1));
