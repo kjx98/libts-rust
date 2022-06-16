@@ -2,6 +2,14 @@
 //extern crate lazy_static;
 
 pub mod measure;
+mod julian;
+mod price_type;
+
+#[cfg(target_arch = "x86_64")]
+pub mod x86;
+
+pub use julian::Julian;
+pub use price_type::PriceType;
 
 //#[cfg(target_endian = "little")]
 

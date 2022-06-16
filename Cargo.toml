@@ -16,11 +16,11 @@ strip = "debuginfo"
 
 [dependencies]
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
-rand = "0.4"
 # lazy_static = "1.4"
 
 [dev-dependencies]
 bencher = "0.1"
+rand = "0.4"
 
 [dependencies.simple_logger]
 version = "2.1"

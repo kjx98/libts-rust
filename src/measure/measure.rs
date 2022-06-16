@@ -27,12 +27,8 @@ mod x86 {
     use std::time::{Instant, Duration};
     use super::duration_as_ns;
 
-    pub fn check_rdtscp() -> bool {
-        use std::arch;
-        let result = unsafe {
-                        arch::x86_64::__cpuid_count(0x80000001u32, 0) };
-        (result.edx & (1 << 27)) != 0
-    }
+    // x86_64 CPU support rdtscp
+    use crate::x86::check_rdtscp;
 
     fn rdtscp() -> u64 {
         use std::arch::asm;
@@ -48,7 +44,7 @@ mod x86 {
     }
 
     fn calibration() {
-        if ! check_rdtscp() { return }
+        if ! check_rdtscp() { panic!("No RDTSCP support!"); }
         // calibrication overhead
         for _i in 0 .. 100 {
             let start = rdtscp();
@@ -141,7 +137,7 @@ mod x86 {
 }
 
 #[cfg(target_arch = "x86_64")]
-pub use x86::{check_rdtscp, MeasureTsc};
+pub use x86::MeasureTsc;
 
 impl Measure {
     pub fn start(name: &'static str) -> Self {
@@ -256,7 +252,8 @@ mod tests {
     #[cfg(target_arch = "x86_64")]
     fn test_measure_tsc() {
         use super::{MeasureTsc, x86::tsc_status};
-        if super::x86::check_rdtscp() {
+        use crate::x86;
+        if x86::check_rdtscp() {
             println!("tsc status: {}", tsc_status());
         } else {
             println!("NO rdtscp SUPPORT");
