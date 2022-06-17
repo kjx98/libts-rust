@@ -4,12 +4,14 @@
 mod julian;
 pub mod measure;
 mod price_type;
+mod timestamp;
 
 #[cfg(target_arch = "x86_64")]
 pub mod x86;
 
 pub use julian::Julian;
 pub use price_type::PriceType;
+pub use timestamp::TimeVal;
 
 //#[cfg(target_endian = "little")]
 
