@@ -9,6 +9,7 @@ mod timestamp;
 #[cfg(target_arch = "x86_64")]
 pub mod x86;
 
+pub mod u64;
 pub use julian::Julian;
 pub use price_type::PriceType;
 pub use timestamp::TimeVal;

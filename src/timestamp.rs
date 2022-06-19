@@ -3,11 +3,17 @@ use std::time::Duration;
 
 const NANOS_PER_SEC: u32 = 1_000_000_000;
 
-#[repr(C)]
 #[derive(Eq, Copy, Clone, Default)]
 pub struct TimeVal {
-    sec: u32,
+    sec: u64,
     nano: u32,
+}
+
+#[derive(Clone, Default)]
+pub struct SysClock {
+    sim: bool,
+    adj_sec: u64,
+    adj_nano: u32,
 }
 
 impl PartialEq for TimeVal {
@@ -25,15 +31,15 @@ impl fmt::Display for TimeVal {
 impl From<Duration> for TimeVal {
     fn from(dur: Duration) -> TimeVal {
         TimeVal {
-            sec: dur.as_secs() as u32,
+            sec: dur.as_secs() as u64,
             nano: dur.subsec_nanos(),
         }
     }
 }
 
 impl TimeVal {
-    pub const fn new(sec: u32, nano: u32) -> TimeVal {
-        let sec = match sec.checked_add((nano / NANOS_PER_SEC) as u32) {
+    pub const fn new(sec: u64, nano: u32) -> TimeVal {
+        let sec = match sec.checked_add((nano / NANOS_PER_SEC) as u64) {
             Some(secs) => secs,
             None => panic!("overflow in TimeVal::new"),
         };
