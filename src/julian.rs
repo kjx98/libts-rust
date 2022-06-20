@@ -92,6 +92,11 @@ impl Julian {
         let res = res * 3600 * 24;
         res
     }
+    pub fn from_time_t(ti: u64) -> Julian {
+        let da: i32 = (ti / (3600 * 24)) as i32;
+        let jdn = TS3_JULIAN_EPOCH + da;
+        Julian(jdn)
+    }
 }
 
 #[cfg(test)]
@@ -106,6 +111,8 @@ mod tests {
         let epo = Julian::from(TS3_JULIAN_EPOCH);
         assert!(jd == epo);
         let epo = Julian::from(TS3_JULIAN_EPOCH as u32);
+        assert!(jd == epo);
+        let jd = Julian::from_time_t(0);
         assert!(jd == epo);
     }
 
@@ -126,5 +133,9 @@ mod tests {
         println!("dump julian(2018,10,1): {}", jd);
         let jd1 = Julian::from((2018, 10, 1));
         assert!(jd == jd1);
+        let jd1 = Julian::from(2_451_545u32);
+        assert!(Julian::new_jdn(2000, 1, 1) == Some(jd1));
+        let jd1 = Julian::from(2_458_485u32);
+        assert!(Julian::new_jdn(2019, 1, 1) == Some(jd1));
     }
 }
