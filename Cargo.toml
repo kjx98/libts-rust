@@ -16,6 +16,7 @@ strip = "debuginfo"
 
 [dependencies]
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
+libc = "0.2"
 # lazy_static = "1.4"
 
 [dev-dependencies]

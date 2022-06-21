@@ -2,7 +2,7 @@ use crate::Julian;
 use std::cmp::Ordering;
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 const NANOS_PER_SEC: u32 = 1_000_000_000;
 
@@ -26,7 +26,13 @@ impl PartialEq for TimeVal {
 
 impl fmt::Display for TimeVal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{:09}", self.sec, self.nano)
+        let (y, m, d) = self.date();
+        let (hh, mm, ss) = self.hms();
+        write!(
+            f,
+            "{}-{:02}-{:02}Z{:02}:{:02}:{:02}.{:09}",
+            y, m, d, hh, mm, ss, self.nano
+        )
     }
 }
 
@@ -132,11 +138,31 @@ impl TimeVal {
         let sec: u64 = hr as u64 * 3600;
         TimeVal { sec, nano: 0 }
     }
-    pub fn and_nanos(&mut self, nano: u32) {
-        self.nano = nano;
+    pub fn from_ymd(y: i32, m: i32, d: i32) -> TimeVal {
+        let jdn = Julian::from((y, m, d));
+        TimeVal {
+            sec: jdn.to_time_t(),
+            nano: 0,
+        }
     }
-    pub fn and_macros(&mut self, macros: u32) {
-        self.nano = macros * 1000;
+    pub fn and_hms(&self, hh: u32, mm: u32, ss: u32) -> TimeVal {
+        let secs = hh * 3600 + mm * 60 + ss;
+        TimeVal {
+            sec: self.sec + secs as u64,
+            nano: 0,
+        }
+    }
+    pub fn and_nanos(&self, nano: u32) -> TimeVal {
+        TimeVal {
+            sec: self.sec,
+            nano,
+        }
+    }
+    pub fn and_macros(&self, macros: u32) -> TimeVal {
+        TimeVal {
+            sec: self.sec,
+            nano: macros * 1000,
+        }
     }
     #[must_use]
     #[inline]
@@ -166,11 +192,26 @@ impl TimeVal {
     pub fn as_secs_f64(&self) -> f64 {
         (self.sec as f64) + (self.nano as f64) / (NANOS_PER_SEC as f64)
     }
+    pub fn as_hours(&self) -> u32 {
+        (self.sec / 3600) as u32
+    }
+    pub fn subhour_macros(&self) -> u32 {
+        let secs = (self.sec % 3600) as u32;
+        secs * 1_000_000 + (self.nano / 1000)
+    }
     pub fn to_duration(&self) -> Duration {
         Duration::new(self.sec as u64, self.nano)
     }
-    pub fn date(&self) -> Julian {
-        Julian::from_time_t(self.sec)
+    pub fn date(&self) -> (i32, i32, i32) {
+        Julian::from_time_t(self.sec).date()
+    }
+    pub fn hms(&self) -> (u32, u32, u32) {
+        let hms = (self.sec % (3600 * 24)) as u32;
+        let hh = hms / 3600;
+        let mmss = hms % 3600;
+        let mm = mmss / 60;
+        let ss = mmss % 60;
+        (hh, mm, ss)
     }
 }
 
@@ -182,9 +223,20 @@ impl SysClock {
         }
     }
     pub fn now(&self) -> TimeVal {
+        use libc::{clock_gettime, timespec, CLOCK_REALTIME};
+        use std::mem::MaybeUninit;
+        /*
         let dur = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap();
+        */
+        let dur = unsafe {
+            let mut tp = MaybeUninit::<timespec>::uninit().assume_init();
+            clock_gettime(CLOCK_REALTIME, &mut tp);
+            let sec = tp.tv_sec as u64;
+            let nano = tp.tv_nsec as u32;
+            Duration::new(sec, nano)
+        };
         if !self.sim {
             TimeVal::from(dur)
         } else {
@@ -207,11 +259,11 @@ impl SysClock {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{thread::sleep, time::Duration};
     #[test]
     fn test_timestamp() {
         let ts1 = TimeVal::from(Julian::new(20220101).unwrap());
-        let jd = ts1.date();
-        let (y, m, d) = jd.date();
+        let (y, m, d) = ts1.date();
         assert_eq!(y, 2022);
         assert_eq!(m, 1);
         assert_eq!(d, 1);
@@ -220,7 +272,13 @@ mod tests {
     #[test]
     fn test_sysclock() {
         let clk = SysClock::new(false);
-        let dt = clk.now().date();
-        println!("Now: {}", dt);
+        let ts = clk.now();
+        println!("Now: {}", ts);
+        let mut clk = SysClock::new(true);
+        let ts1 = TimeVal::from_ymd(2022, 1, 1).and_hms(8, 30, 0);
+        clk.set_timeval(&ts1);
+        sleep(Duration::from_micros(100));
+        let ts = clk.now();
+        println!("after sleep 2022-01-01: {}", ts);
     }
 }
