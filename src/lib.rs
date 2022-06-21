@@ -12,7 +12,7 @@ pub mod x86;
 pub mod u64;
 pub use julian::Julian;
 pub use price_type::PriceType;
-pub use timestamp::TimeVal;
+pub use timestamp::{SysClock, TimeVal};
 
 //#[cfg(target_endian = "little")]
 

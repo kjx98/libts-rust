@@ -30,8 +30,14 @@ impl fmt::Display for TimeVal {
         let (hh, mm, ss) = self.hms();
         write!(
             f,
-            "{}-{:02}-{:02}Z{:02}:{:02}:{:02}.{:09}",
-            y, m, d, hh, mm, ss, self.nano
+            "{}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}Z",
+            y,
+            m,
+            d,
+            hh,
+            mm,
+            ss,
+            self.nano / 1000
         )
     }
 }
@@ -158,10 +164,10 @@ impl TimeVal {
             nano,
         }
     }
-    pub fn and_macros(&self, macros: u32) -> TimeVal {
+    pub fn and_micros(&self, micros: u32) -> TimeVal {
         TimeVal {
             sec: self.sec,
-            nano: macros * 1000,
+            nano: micros * 1000,
         }
     }
     #[must_use]
@@ -195,7 +201,7 @@ impl TimeVal {
     pub fn as_hours(&self) -> u32 {
         (self.sec / 3600) as u32
     }
-    pub fn subhour_macros(&self) -> u32 {
+    pub fn subhour_micros(&self) -> u32 {
         let secs = (self.sec % 3600) as u32;
         secs * 1_000_000 + (self.nano / 1000)
     }
