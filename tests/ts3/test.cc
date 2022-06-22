@@ -162,6 +162,7 @@ TEST(testTS3, TestDatetime)
 	time_t	tn=time(nullptr);
 #ifdef	__linux__
 	cerr << "tz off: " << std::dec << timezone << std::endl;
+	ASSERT_EQ(sizeof(timezone), 8);
 #endif
 	ASSERT_TRUE(localtime_r(&tn, &tmp) != nullptr);
 	char	ss[128];

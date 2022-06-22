@@ -140,36 +140,6 @@ impl TimeVal {
         let nano = nano % NANOS_PER_SEC;
         TimeVal { sec, nano }
     }
-    pub const fn from_hours(hr: u32) -> TimeVal {
-        let sec: u64 = hr as u64 * 3600;
-        TimeVal { sec, nano: 0 }
-    }
-    pub fn from_ymd(y: i32, m: i32, d: i32) -> TimeVal {
-        let jdn = Julian::from((y, m, d));
-        TimeVal {
-            sec: jdn.to_time_t(),
-            nano: 0,
-        }
-    }
-    pub fn and_hms(&self, hh: u32, mm: u32, ss: u32) -> TimeVal {
-        let secs = hh * 3600 + mm * 60 + ss;
-        TimeVal {
-            sec: self.sec + secs as u64,
-            nano: 0,
-        }
-    }
-    pub fn and_nanos(&self, nano: u32) -> TimeVal {
-        TimeVal {
-            sec: self.sec,
-            nano,
-        }
-    }
-    pub fn and_micros(&self, micros: u32) -> TimeVal {
-        TimeVal {
-            sec: self.sec,
-            nano: micros * 1000,
-        }
-    }
     #[must_use]
     #[inline]
     pub const fn as_secs(&self) -> u64 {
@@ -265,6 +235,7 @@ impl SysClock {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::UnixTime;
     use std::{thread::sleep, time::Duration};
     #[test]
     fn test_timestamp() {
@@ -281,7 +252,9 @@ mod tests {
         let ts = clk.now();
         println!("Now: {}", ts);
         let mut clk = SysClock::new(true);
-        let ts1 = TimeVal::from_ymd(2022, 1, 1).and_hms(8, 30, 0);
+        let ts1 = UnixTime::from_ymd(2022, 1, 1)
+            .and_hms(8, 30, 0)
+            .and_nanos(0);
         clk.set_timeval(&ts1);
         sleep(Duration::from_micros(100));
         let ts = clk.now();

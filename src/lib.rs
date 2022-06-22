@@ -1,10 +1,11 @@
-//#[macro_use(lazy_static)]
-//extern crate lazy_static;
+#[macro_use(lazy_static)]
+extern crate lazy_static;
 
 mod julian;
 pub mod measure;
 mod price_type;
 mod timestamp;
+mod unix_time;
 
 #[cfg(target_arch = "x86_64")]
 pub mod x86;
@@ -13,6 +14,7 @@ pub mod u64;
 pub use julian::Julian;
 pub use price_type::PriceType;
 pub use timestamp::{SysClock, TimeVal};
+pub use unix_time::{Local, UnixTime};
 
 //#[cfg(target_endian = "little")]
 
