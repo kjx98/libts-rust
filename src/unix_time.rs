@@ -9,7 +9,7 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 pub struct UnixTime(u64);
 
 #[derive(Clone)]
-pub struct Local {
+pub struct Tz {
     offset: i64,
     tz_name: String,
 }
@@ -21,16 +21,18 @@ extern "C" {
 }
 
 lazy_static! {
-    static ref LOCAL_TZ: Local = {
+    static ref LOCAL_TZ: Tz = {
         unsafe {
             tzset();
         }
         let offset: i64 = unsafe { timezone };
         let tz_name = unsafe { CStr::from_ptr(tzname[0]) };
         let tz_name = tz_name.to_str().unwrap().to_owned();
-        Local { offset, tz_name }
+        Tz { offset, tz_name }
     };
 }
+
+pub struct Local {}
 
 impl PartialEq for UnixTime {
     fn eq(&self, other: &Self) -> bool {
@@ -152,14 +154,11 @@ impl UnixTime {
 }
 
 impl Local {
-    pub fn new() -> Local {
-        LOCAL_TZ.clone()
+    pub fn offset() -> i64 {
+        LOCAL_TZ.offset
     }
-    pub fn offset(&self) -> i64 {
-        self.offset
-    }
-    pub fn tzname(&self) -> &str {
-        &self.tz_name
+    pub fn tzname() -> &'static str {
+        &LOCAL_TZ.tz_name
     }
 }
 
@@ -180,7 +179,6 @@ mod tests {
 
     #[test]
     fn test_local() {
-        let local = Local::new();
-        println!("Local: {}, offset: {}", local.tzname(), local.offset());
+        println!("Local: {}, offset: {}", Local::tzname(), Local::offset());
     }
 }
