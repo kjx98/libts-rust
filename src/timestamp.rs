@@ -4,7 +4,9 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 use std::time::Duration;
 
-const NANOS_PER_SEC: u32 = 1_000_000_000;
+pub const TS3_TIME_NANO: u32 = 1_000_000_000;
+pub const TS3_TIME_MICRO: u32 = 1_000_000;
+pub const TS3_TIME_MILLI: u32 = 1_000;
 
 #[derive(Eq, Copy, Clone, Default)]
 pub struct TimeVal {
@@ -81,11 +83,11 @@ impl Add for TimeVal {
     type Output = TimeVal;
     fn add(self, rhs: TimeVal) -> TimeVal {
         let nano = self.nano + rhs.nano;
-        let cc: u64 = if nano < NANOS_PER_SEC { 0 } else { 1 };
-        let nano = if nano < NANOS_PER_SEC {
+        let cc: u64 = if nano < TS3_TIME_NANO { 0 } else { 1 };
+        let nano = if nano < TS3_TIME_NANO {
             nano
         } else {
-            nano - NANOS_PER_SEC
+            nano - TS3_TIME_NANO
         };
         let (sec, _) = u64_add(self.sec, rhs.sec + cc);
         TimeVal { sec, nano }
@@ -95,11 +97,11 @@ impl Add for TimeVal {
 impl AddAssign for TimeVal {
     fn add_assign(&mut self, rhs: TimeVal) {
         let nano = self.nano + rhs.nano;
-        let cc: u64 = if nano < NANOS_PER_SEC { 0 } else { 1 };
-        self.nano = if nano < NANOS_PER_SEC {
+        let cc: u64 = if nano < TS3_TIME_NANO { 0 } else { 1 };
+        self.nano = if nano < TS3_TIME_NANO {
             nano
         } else {
-            nano - NANOS_PER_SEC
+            nano - TS3_TIME_NANO
         };
         (self.sec, _) = u64_add(self.sec, rhs.sec + cc);
     }
@@ -110,7 +112,7 @@ impl Sub for TimeVal {
     fn sub(self, rhs: TimeVal) -> TimeVal {
         let cc: u64 = if self.nano < rhs.nano { 1 } else { 0 };
         let nano = if self.nano < rhs.nano {
-            NANOS_PER_SEC + self.nano - rhs.nano
+            TS3_TIME_NANO + self.nano - rhs.nano
         } else {
             self.nano - rhs.nano
         };
@@ -123,7 +125,7 @@ impl SubAssign for TimeVal {
     fn sub_assign(&mut self, rhs: TimeVal) {
         let cc: u64 = if self.nano < rhs.nano { 1 } else { 0 };
         self.nano = if self.nano < rhs.nano {
-            NANOS_PER_SEC + self.nano - rhs.nano
+            TS3_TIME_NANO + self.nano - rhs.nano
         } else {
             self.nano - rhs.nano
         };
@@ -133,11 +135,11 @@ impl SubAssign for TimeVal {
 
 impl TimeVal {
     pub const fn new(sec: u64, nano: u32) -> TimeVal {
-        let sec = match sec.checked_add((nano / NANOS_PER_SEC) as u64) {
+        let sec = match sec.checked_add((nano / TS3_TIME_NANO) as u64) {
             Some(secs) => secs,
             None => panic!("overflow in TimeVal::new"),
         };
-        let nano = nano % NANOS_PER_SEC;
+        let nano = nano % TS3_TIME_NANO;
         TimeVal { sec, nano }
     }
     #[must_use]
@@ -166,7 +168,7 @@ impl TimeVal {
         self.nano
     }
     pub fn as_secs_f64(&self) -> f64 {
-        (self.sec as f64) + (self.nano as f64) / (NANOS_PER_SEC as f64)
+        (self.sec as f64) + (self.nano as f64) / (TS3_TIME_NANO as f64)
     }
     pub fn as_hours(&self) -> u32 {
         (self.sec / 3600) as u32

@@ -86,6 +86,7 @@ impl Julian {
     pub fn jdn(&self) -> i32 {
         self.0
     }
+    // return seconds from Unix Epoch UTC 1970-1-1 00:00:00
     pub fn to_time_t(&self) -> u64 {
         debug_assert!(self.0 >= TS3_JULIAN_EPOCH);
         let res: u64 = (self.0 - TS3_JULIAN_EPOCH) as u64;

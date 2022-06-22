@@ -5,6 +5,7 @@ use std::ffi::CStr;
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
+// seconds since Unix Epoch 1970-01-01 00:00:00 UTC
 #[derive(Eq, Copy, Clone, Default)]
 pub struct UnixTime(u64);
 

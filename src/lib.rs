@@ -1,6 +1,7 @@
 #[macro_use(lazy_static)]
 extern crate lazy_static;
 
+mod datetime;
 mod julian;
 pub mod measure;
 mod price_type;
@@ -11,6 +12,7 @@ mod unix_time;
 pub mod x86;
 
 pub mod u64;
+pub use datetime::DateTime;
 pub use julian::Julian;
 pub use price_type::PriceType;
 pub use timestamp::{SysClock, TimeVal};
