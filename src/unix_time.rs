@@ -1,9 +1,9 @@
 use crate::{Julian, TimeVal};
-use libc::c_char;
 use std::cmp::Ordering;
 use std::ffi::CStr;
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::os::raw::{c_char, c_int, c_long};
 
 // seconds since Unix Epoch 1970-01-01 00:00:00 UTC
 #[derive(Eq, Copy, Clone, Default)]
@@ -15,8 +15,10 @@ pub struct Tz {
     tz_name: String,
 }
 
+#[cfg(target_os = "linux")]
 extern "C" {
-    static timezone: i64;
+    static timezone: c_long;
+    static daylight: c_int;
     static tzname: [*const c_char; 2];
     fn tzset();
 }
@@ -26,9 +28,21 @@ lazy_static! {
         unsafe {
             tzset();
         }
+        #[cfg(target_os = "linux")]
         let offset: i64 = unsafe { timezone };
-        let tz_name = unsafe { CStr::from_ptr(tzname[0]) };
-        let tz_name = tz_name.to_str().unwrap().to_owned();
+        #[cfg(not(target_os = "linux"))]
+        let offset: i64 = -28800;
+        #[cfg(target_os = "linux")]
+        let tz_name = unsafe {
+            let tz_name = if daylight == 0 {
+                CStr::from_ptr(tzname[0])
+            } else {
+                CStr::from_ptr(tzname[1])
+            };
+            tz_name.to_string_lossy().to_string()
+        };
+        #[cfg(not(target_os = "linux"))]
+        let tz_name = "CST".to_string();
         Tz { offset, tz_name }
     };
 }

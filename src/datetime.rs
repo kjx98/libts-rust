@@ -1,7 +1,12 @@
-use crate::timestamp::{TS3_TIME_MICRO, TS3_TIME_MILLI, TS3_TIME_NANO};
+use crate::timestamp::Dur;
 use crate::{Local, TimeVal, UnixTime};
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
+
+const TS3_TIME_SECOND: u32 = Dur::Second as u32;
+const TS3_TIME_NANO: u32 = Dur::Nano as u32;
+const TS3_TIME_MICRO: u32 = Dur::Micro as u32;
+const TS3_TIME_MILLI: u32 = Dur::Milli as u32;
 
 #[derive(Eq, Copy, Clone, Default)]
 pub struct DateTime<const DUR: u32 = 1, const IS_UTC: bool = false> {
@@ -32,7 +37,7 @@ impl<const DUR: u32, const IS_UTC: bool> fmt::Display for DateTime<DUR, IS_UTC> 
         let (hh, mm, ss) = ut.hms();
         let dts = format!("{}-{:02}-{:02} {:02}:{:02}:{:02}", y, m, d, hh, mm, ss);
         match DUR {
-            1 => write!(f, "{}", dts),
+            TS3_TIME_SECOND => write!(f, "{}", dts),
             TS3_TIME_MICRO => write!(f, "{}.{:06}", dts, subsec),
             TS3_TIME_MILLI => write!(f, "{}.{:03}", dts, subsec),
             _ => panic!("NOT SUPPORT"),
@@ -128,5 +133,7 @@ mod tests {
         assert_eq!(dt.as_secs(), 8);
         assert_eq!(dt.as_secs_f64(), 8.123456);
         println!("DateTime<us>: {}", dt);
+        let dt = dt + 111000;
+        assert_eq!(dt.as_secs_f64(), 8.234456);
     }
 }

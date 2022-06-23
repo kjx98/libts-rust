@@ -4,9 +4,14 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 use std::time::Duration;
 
-pub const TS3_TIME_NANO: u32 = 1_000_000_000;
-pub const TS3_TIME_MICRO: u32 = 1_000_000;
-pub const TS3_TIME_MILLI: u32 = 1_000;
+pub enum Dur {
+    Second = 1,
+    Nano = 1_000_000_000,
+    Micro = 1_000_000,
+    Milli = 1_000,
+}
+
+const TS3_TIME_NANO: u32 = Dur::Nano as u32;
 
 #[derive(Eq, Copy, Clone, Default)]
 pub struct TimeVal {
@@ -83,11 +88,11 @@ impl Add for TimeVal {
     type Output = TimeVal;
     fn add(self, rhs: TimeVal) -> TimeVal {
         let nano = self.nano + rhs.nano;
-        let cc: u64 = if nano < TS3_TIME_NANO { 0 } else { 1 };
-        let nano = if nano < TS3_TIME_NANO {
+        let cc: u64 = if nano < Dur::Nano as u32 { 0 } else { 1 };
+        let nano = if nano < Dur::Nano as u32 {
             nano
         } else {
-            nano - TS3_TIME_NANO
+            nano - Dur::Nano as u32
         };
         let (sec, _) = u64_add(self.sec, rhs.sec + cc);
         TimeVal { sec, nano }
