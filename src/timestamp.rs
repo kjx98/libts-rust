@@ -191,6 +191,16 @@ impl TimeVal {
         let ss = mmss % 60;
         (hh, mm, ss)
     }
+    pub fn now() -> TimeVal {
+        use libc::{clock_gettime, timespec, CLOCK_REALTIME};
+        use std::mem::MaybeUninit;
+        let (sec, nano) = unsafe {
+            let mut tp = MaybeUninit::<timespec>::uninit().assume_init();
+            clock_gettime(CLOCK_REALTIME, &mut tp);
+            (tp.tv_sec as u64, tp.tv_nsec as u32)
+        };
+        TimeVal { sec, nano }
+    }
 }
 
 impl SysClock {
