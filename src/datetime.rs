@@ -9,7 +9,7 @@ const TS3_TIME_MICRO: u32 = Dur::Micro as u32;
 const TS3_TIME_MILLI: u32 = Dur::Milli as u32;
 
 #[derive(Eq, Copy, Clone, Default)]
-pub struct DateTime<const DUR: u32 = 1, const IS_UTC: bool = false> {
+pub struct DateTime<const DUR: u32=1, const IS_UTC: bool = false> {
     time: i64,
 }
 
@@ -106,8 +106,21 @@ impl<const DUR: u32, const IS_UTC: bool> SubAssign<u32> for DateTime<DUR, IS_UTC
     }
 }
 
+impl DateTime<TS3_TIME_MILLI, false> {
+    pub const fn new_ms(time: i64) -> DateTime<TS3_TIME_MILLI, false> {
+        DateTime::<TS3_TIME_MILLI>::new(time)
+    }
+}
+
+impl DateTime<TS3_TIME_MICRO, false> {
+    pub const fn new_us(time: i64) -> DateTime<TS3_TIME_MICRO, false> {
+        DateTime::<TS3_TIME_MICRO>::new( time )
+    }
+}
+
 impl<const DUR: u32, const IS_UTC: bool> DateTime<DUR, IS_UTC> {
-    pub const fn new(time: i64) -> DateTime<DUR, IS_UTC> {
+    const fn new(time: i64) -> DateTime<DUR, IS_UTC> {
+        assert!(DUR != 0);
         DateTime::<DUR, IS_UTC> { time }
     }
     #[must_use]
@@ -135,5 +148,11 @@ mod tests {
         println!("DateTime<us>: {}", dt);
         let dt = dt + 111000;
         assert_eq!(dt.as_secs_f64(), 8.234456);
+        let dt = DateTime::<1>::new(8123);
+        assert_eq!(dt.as_secs(), 8123);
+        assert_eq!(dt.as_secs_f64(), 8123.0);
+        let dt = DateTime::new_us(8123456);
+        assert_eq!(dt.as_secs(), 8);
+        assert_eq!(dt.as_secs_f64(), 8.123456);
     }
 }
