@@ -9,7 +9,7 @@ const TS3_TIME_MICRO: u32 = Dur::Micro as u32;
 const TS3_TIME_MILLI: u32 = Dur::Milli as u32;
 
 #[derive(Eq, Copy, Clone, Default)]
-pub struct DateTime<const DUR: u32=1, const IS_UTC: bool = false> {
+pub struct DateTime<const DUR: u32 = 1, const IS_UTC: bool = false> {
     time: i64,
 }
 
@@ -114,7 +114,7 @@ impl DateTime<TS3_TIME_MILLI, false> {
 
 impl DateTime<TS3_TIME_MICRO, false> {
     pub const fn new_us(time: i64) -> DateTime<TS3_TIME_MICRO, false> {
-        DateTime::<TS3_TIME_MICRO>::new( time )
+        DateTime::<TS3_TIME_MICRO>::new(time)
     }
 }
 

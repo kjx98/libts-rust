@@ -12,6 +12,7 @@ pub enum Dur {
 }
 
 const TS3_TIME_NANO: u32 = Dur::Nano as u32;
+const SYS_JITTER: u64 = 100_000; // 100us
 
 #[derive(Eq, Copy, Clone, Default)]
 pub struct TimeVal {
@@ -88,8 +89,8 @@ impl Add for TimeVal {
     type Output = TimeVal;
     fn add(self, rhs: TimeVal) -> TimeVal {
         let nano = self.nano + rhs.nano;
-        let cc: u64 = if nano < Dur::Nano as u32 { 0 } else { 1 };
-        let nano = if nano < Dur::Nano as u32 {
+        let cc: u64 = if nano < TS3_TIME_NANO { 0 } else { 1 };
+        let nano = if nano < TS3_TIME_NANO {
             nano
         } else {
             nano - Dur::Nano as u32
@@ -109,6 +110,38 @@ impl AddAssign for TimeVal {
             nano - TS3_TIME_NANO
         };
         (self.sec, _) = u64_add(self.sec, rhs.sec + cc);
+    }
+}
+
+impl Add<u64> for TimeVal {
+    type Output = TimeVal;
+    fn add(self, rhs: u64) -> TimeVal {
+        let sec = rhs / TS3_TIME_NANO as u64;
+        let nano = (rhs % TS3_TIME_NANO as u64) as u32;
+        let nano = self.nano + nano;
+        let cc: u64 = if nano < Dur::Nano as u32 { 0 } else { 1 };
+        let nano = if nano < Dur::Nano as u32 {
+            nano
+        } else {
+            nano - Dur::Nano as u32
+        };
+        let (sec, _) = u64_add(self.sec, sec + cc);
+        TimeVal { sec, nano }
+    }
+}
+
+impl AddAssign<u64> for TimeVal {
+    fn add_assign(&mut self, rhs: u64) {
+        let sec = rhs / TS3_TIME_NANO as u64;
+        let nano = (rhs % TS3_TIME_NANO as u64) as u32;
+        let nano = self.nano + nano;
+        let cc: u64 = if nano < TS3_TIME_NANO { 0 } else { 1 };
+        self.nano = if nano < TS3_TIME_NANO {
+            nano
+        } else {
+            nano - TS3_TIME_NANO
+        };
+        (self.sec, _) = u64_add(self.sec, sec + cc);
     }
 }
 
@@ -249,6 +282,20 @@ impl SysClock {
     }
 }
 
+pub fn nsleep(nsec: u64) {
+    use std::thread;
+    let mut tv = TimeVal::now();
+    let tpe = tv + nsec;
+    if nsec > SYS_JITTER {
+        thread::sleep(Duration::from_nanos(nsec));
+        tv = TimeVal::now();
+    }
+    while tv < tpe {
+        thread::yield_now();
+        tv = TimeVal::now();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -276,5 +323,20 @@ mod tests {
         sleep(Duration::from_micros(100));
         let ts = clk.now();
         println!("after sleep 2022-01-01: {}", ts);
+    }
+
+    #[test]
+    fn test_nsleep() {
+        let tv = TimeVal::now();
+        nsleep(50_000);
+        let tve = TimeVal::now();
+        let ts = tve - tv;
+        let dur = ts.to_duration();
+        println!(
+            "nsleep(50_000) cost {} hours {} us",
+            ts.as_hours(),
+            ts.subhour_micros()
+        );
+        println!("nsleep(50_000) cost {} seconds", dur.as_secs_f64());
     }
 }

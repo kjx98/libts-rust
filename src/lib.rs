@@ -15,7 +15,7 @@ pub mod u64;
 pub use datetime::DateTime;
 pub use julian::Julian;
 pub use price_type::PriceType;
-pub use timestamp::{SysClock, TimeVal};
+pub use timestamp::{nsleep, SysClock, TimeVal};
 pub use unix_time::{Local, UnixTime};
 
 //#[cfg(target_endian = "little")]
