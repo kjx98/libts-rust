@@ -154,5 +154,7 @@ mod tests {
         let dt = DateTime::new_us(8123456);
         assert_eq!(dt.as_secs(), 8);
         assert_eq!(dt.as_secs_f64(), 8.123456);
+        let dt = DateTime::<TS3_TIME_MILLI>::from(TimeVal::now());
+        println!("Current time(ms): {}", dt);
     }
 }

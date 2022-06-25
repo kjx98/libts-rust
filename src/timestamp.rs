@@ -34,19 +34,27 @@ impl PartialEq for TimeVal {
 
 impl fmt::Display for TimeVal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (y, m, d) = self.date();
+        let d = self.days();
         let (hh, mm, ss) = self.hms();
-        write!(
-            f,
-            "{}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}Z",
-            y,
-            m,
-            d,
-            hh,
-            mm,
-            ss,
-            self.nano / 1000
-        )
+        if d > 0 {
+            write!(
+                f,
+                "{} days {:02}:{:02}:{:02}.{:06}",
+                d,
+                hh,
+                mm,
+                ss,
+                self.nano / 1000
+            )
+        } else if hh == 0 && mm == 0 && ss == 0 {
+            if self.nano > 10_000 {
+                write!(f, "{} us", self.nano / 1000)
+            } else {
+                write!(f, "{} ns", self.nano)
+            }
+        } else {
+            write!(f, "{:02}:{:02}:{:02}.{:06}", hh, mm, ss, self.nano / 1000)
+        }
     }
 }
 
@@ -221,6 +229,9 @@ impl TimeVal {
     pub fn date(&self) -> (i32, i32, i32) {
         Julian::from_time_t(self.sec).date()
     }
+    pub fn days(&self) -> u32 {
+        (self.sec / (3600 * 24)) as u32
+    }
     pub fn hms(&self) -> (u32, u32, u32) {
         let hms = (self.sec % (3600 * 24)) as u32;
         let hh = hms / 3600;
@@ -314,14 +325,14 @@ mod tests {
     fn test_sysclock() {
         let clk = SysClock::new(false);
         let ts = clk.now();
-        println!("Now: {}", ts);
+        println!("Now since epoch: {}", ts);
         let mut clk = SysClock::new(true);
         let ts1 = UnixTime::from_ymd(2022, 1, 1)
             .and_hms(8, 30, 0)
             .and_nanos(0);
         clk.set_timeval(&ts1);
         sleep(Duration::from_micros(100));
-        let ts = clk.now();
+        let ts = clk.now() - ts1;
         println!("after sleep 2022-01-01: {}", ts);
     }
 
@@ -333,7 +344,8 @@ mod tests {
         let ts = tve - tv;
         let dur = ts.to_duration();
         println!(
-            "nsleep(50_000) cost {} hours {} us",
+            "nsleep(50_000) cost ({}) {} hours {} us",
+            ts,
             ts.as_hours(),
             ts.subhour_micros()
         );
