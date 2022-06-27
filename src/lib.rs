@@ -5,6 +5,7 @@ mod datetime;
 mod julian;
 pub mod measure;
 mod price_type;
+mod serde;
 mod timestamp;
 mod unix_time;
 
