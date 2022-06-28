@@ -32,17 +32,40 @@ impl PartialEq for ClMessaage {
     }
 }
 
-/*
-impl From<String> for ClMessaage {
-    fn from(src: String) -> ClMessaage {
-        let len: u16 = if src.len() > 62 { 62 as u16 } else { src.len() as u16 };
-        let da = mem::MaybeUninit::<[u8;62]>::uninit();
+impl From<&str> for ClMessaage {
+    fn from(src: &str) -> ClMessaage {
+        let src = src.as_bytes();
+        let len: u16 = if src.len() > 62 {
+            62 as u16
+        } else {
+            src.len() as u16
+        };
+        let da = mem::MaybeUninit::<[u8; 62]>::uninit();
         let mut da = unsafe { da.assume_init() };
-        da[..len as usize].copy_from_slice(&src[..len as usize] as &[u8]);
+        da[..len as usize].copy_from_slice(&src[..len as usize]);
         ClMessaage { len, da }
     }
 }
-*/
+
+impl ClMessaage {
+    pub fn new(src: &[u8]) -> ClMessaage {
+        let len: u16 = if src.len() > 62 {
+            62 as u16
+        } else {
+            src.len() as u16
+        };
+        let da = mem::MaybeUninit::<[u8; 62]>::uninit();
+        let mut da = unsafe { da.assume_init() };
+        da[..len as usize].copy_from_slice(&src[..len as usize]);
+        ClMessaage { len, da }
+    }
+    pub fn len(&self) -> u16 {
+        self.len
+    }
+    pub fn data(&self) -> &[u8] {
+        &self.da[..self.len as usize]
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -53,5 +76,13 @@ mod tests {
     fn test_sizeof_msg() {
         assert_eq!(mem::size_of::<ClMessaage>(), 64);
         assert_eq!(mem::align_of::<ClMessaage>(), 64);
+    }
+
+    #[test]
+    fn test_convert() {
+        let msg1 = ClMessaage::from("test");
+        let da: [u8; 4] = [b't', b'e', b's', b't'];
+        assert_eq!(msg1.len(), 4);
+        assert_eq!(*msg1.data(), da[..]);
     }
 }
