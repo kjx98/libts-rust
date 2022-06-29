@@ -16,7 +16,7 @@ pub mod x86;
 pub mod u64;
 pub use datetime::DateTime;
 pub use julian::Julian;
-pub use msg::ClMessaage;
+pub use msg::ClMessage;
 pub use price_type::PriceType;
 pub use timestamp::{nsleep, SysClock, TimeVal};
 pub use unix_time::{Local, UnixTime};
