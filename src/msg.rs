@@ -1,5 +1,6 @@
 use std::fmt;
 use std::mem;
+use std::ops::{Add, AddAssign};
 
 #[repr(C, align(64))]
 #[derive(Eq, Copy, Clone)]
@@ -39,6 +40,48 @@ impl From<&str> for ClMessaage {
     }
 }
 
+impl Add<u8> for ClMessaage {
+    type Output = ClMessaage;
+    fn add(self, rhs: u8) -> ClMessaage {
+        assert!(self.len < 62);
+        let len = self.len + 1;
+        let mut da = self.da.clone();
+        da[self.len as usize] = rhs;
+        ClMessaage { len, da }
+    }
+}
+
+impl AddAssign<u8> for ClMessaage {
+    fn add_assign(&mut self, rhs: u8) {
+        assert!(self.len < 62);
+        self.da[self.len as usize] = rhs;
+        self.len += 1;
+    }
+}
+
+impl Add<&[u8]> for ClMessaage {
+    type Output = ClMessaage;
+    fn add(self, rhs: &[u8]) -> ClMessaage {
+        let dlen = self.len as usize;
+        let len = rhs.len() + dlen;
+        assert!(len <= 62);
+        let mut da = self.da.clone();
+        da[dlen..len].copy_from_slice(rhs);
+        let len = len as u16;
+        ClMessaage { len, da }
+    }
+}
+
+impl AddAssign<&[u8]> for ClMessaage {
+    fn add_assign(&mut self, rhs: &[u8]) {
+        let dlen = self.len as usize;
+        let len = rhs.len() + dlen;
+        assert!(len <= 62);
+        self.da[dlen..len].copy_from_slice(rhs);
+        self.len = len as u16;
+    }
+}
+
 impl ClMessaage {
     pub fn new(src: &[u8]) -> ClMessaage {
         let len: u16 = if src.len() > 62 { 62 } else { src.len() as u16 };
@@ -73,6 +116,15 @@ mod tests {
         assert_eq!(msg1.len(), 4);
         assert_eq!(*msg1.data(), da[..]);
         let msg2 = ClMessaage::new(&da[..]);
+        assert!(msg1 == msg2);
+        let msg1 = ClMessaage::from("tes");
+        let msg1 = msg1 + b't';
+        assert!(msg1 == msg2);
+        let mut msg1 = ClMessaage::from("te");
+        msg1 += &da[2..];
+        assert!(msg1 == msg2);
+        let msg1 = ClMessaage::from("te");
+        let msg1 = msg1 + &da[2..];
         assert!(msg1 == msg2);
     }
 }
