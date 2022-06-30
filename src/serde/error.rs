@@ -22,6 +22,7 @@ pub enum Error {
     // Deserializer without going through `ser::Error` and `de::Error`. These
     // are specific to the format, in this case JSON.
     Eof,
+    NoBufs,
     Syntax,
     ExpectedBoolean,
     ExpectedInteger,

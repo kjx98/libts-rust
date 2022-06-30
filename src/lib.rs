@@ -8,12 +8,13 @@ mod msg;
 mod price_type;
 mod serde;
 mod timestamp;
+pub mod u64;
 mod unix_time;
 
 #[cfg(target_arch = "x86_64")]
 pub mod x86;
 
-pub mod u64;
+pub use crate::serde::to_msg;
 pub use datetime::DateTime;
 pub use julian::Julian;
 pub use msg::ClMessage;
