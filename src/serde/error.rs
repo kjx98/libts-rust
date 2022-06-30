@@ -27,10 +27,7 @@ pub enum Error {
     ExpectedBoolean,
     ExpectedInteger,
     ExpectedString,
-    ExpectedNull,
     ExpectedArray,
-    ExpectedMap,
-    ExpectedEnum,
     TrailingCharacters,
 }
 
@@ -56,10 +53,7 @@ impl Display for Error {
             Error::ExpectedBoolean => formatter.write_str("expect bool input"),
             Error::ExpectedInteger => formatter.write_str("expect int input"),
             Error::ExpectedString => formatter.write_str("expect string input"),
-            Error::ExpectedNull => formatter.write_str("expect null input"),
             Error::ExpectedArray => formatter.write_str("expect array input"),
-            Error::ExpectedMap => formatter.write_str("expect map input"),
-            Error::ExpectedEnum => formatter.write_str("expect enum input"),
             Error::TrailingCharacters => formatter.write_str("trailing chars"),
             /* and so forth */
             //_ => todo!(),

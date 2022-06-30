@@ -91,14 +91,15 @@ impl<'de> Deserializer<'de> {
         if self.input.len() == 0 {
             Err(Error::Eof)
         } else {
-            let len = self.input[0] as usize + 1;
-            if self.input.len() < len {
+            let len = self.input[0] as usize;
+            if self.input.len() < len + 1 {
                 return Err(Error::Eof);
                 //return Err(Error::ExpectedString);
             }
-            let s = &self.input[1..len];
-            self.input = &self.input[len + 1..];
-            if let Ok(s) = std::str::from_utf8(s) {
+            let s = &self.input[1..];
+            let (le, ri) = s.split_at(len);
+            self.input = ri;
+            if let Ok(s) = std::str::from_utf8(le) {
                 Ok(s)
             } else {
                 Err(Error::ExpectedString)
@@ -314,10 +315,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         // Parse the opening bracket of the sequence.
-        let _n = self.next_byte()? as usize;
+        let n = self.next_byte()?;
 
         // Give the visitor access to each element of the sequence.
-        let value = visitor.visit_seq(CommaSeparated::new(self))?;
+        let value = visitor.visit_seq(CommaSeparated::new(self, n))?;
         Ok(value)
     }
 
@@ -366,13 +367,15 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     fn deserialize_struct<V>(
         self,
         _name: &'static str,
-        _fields: &'static [&'static str],
+        fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        self.deserialize_map(visitor)
+        // Give the visitor access to each element of the sequence.
+        let value = visitor.visit_seq(CommaSeparated::new(self, fields.len() as u8))?;
+        Ok(value)
     }
 
     fn deserialize_enum<V>(
@@ -422,12 +425,12 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 // element.
 struct CommaSeparated<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
-    first: bool,
+    cnt: u8,
 }
 
 impl<'a, 'de> CommaSeparated<'a, 'de> {
-    fn new(de: &'a mut Deserializer<'de>) -> Self {
-        CommaSeparated { de, first: true }
+    fn new(de: &'a mut Deserializer<'de>, cnt: u8) -> Self {
+        CommaSeparated { de, cnt }
     }
 }
 
@@ -441,14 +444,11 @@ impl<'de, 'a> SeqAccess<'de> for CommaSeparated<'a, 'de> {
         T: DeserializeSeed<'de>,
     {
         // Check if there are no more elements.
-        if self.de.peek_byte()? == b']' {
+        if self.cnt == 0 {
             return Ok(None);
         }
         // Comma is required before every element except the first.
-        if !self.first && self.de.next_byte()? != b',' {
-            //return Err(Error::ExpectedArrayComma);
-        }
-        self.first = false;
+        self.cnt -= 1;
         // Deserialize an array element.
         seed.deserialize(&mut *self.de).map(Some)
     }
@@ -460,14 +460,21 @@ impl<'de, 'a> SeqAccess<'de> for CommaSeparated<'a, 'de> {
 fn test_struct() {
     #[derive(Deserialize, PartialEq, Debug)]
     struct Test {
+        b: bool,
         int: u32,
         seq: Vec<String>,
     }
 
-    let _j = r#"{"int":1,"seq":["a","b"]}"#;
-    let _expected = Test {
+    let j = [1u8, b'a'];
+    let msg = ClMessage::new(&j[..]);
+    let expected = "a".to_owned();
+    assert_eq!(expected, from_msg::<String>(&msg).unwrap());
+    let j = [0, 1u8, 0, 0, 0, 2u8, 1, b'a', 1, b'b'];
+    let msg = ClMessage::new(&j[..]);
+    let expected = Test {
+        b: false,
         int: 1,
         seq: vec!["a".to_owned(), "b".to_owned()],
     };
-    //assert_eq!(expected, from_str(j).unwrap());
+    assert_eq!(expected, from_msg(&msg).unwrap());
 }
