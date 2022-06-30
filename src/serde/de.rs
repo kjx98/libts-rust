@@ -63,10 +63,9 @@ impl<'de> Deserializer<'de> {
     fn parse_bool(&mut self) -> Result<bool> {
         if self.input.len() == 0 {
             Err(Error::Eof)
-            //Err(Error::ExpectedBoolean)
         } else {
             let ch = self.input[0];
-            self.input = &self.input[1..];
+            (_, self.input) = self.input.split_at(1);
             Ok(ch != 0)
         }
     }
@@ -78,32 +77,33 @@ impl<'de> Deserializer<'de> {
             let bytes = mem::MaybeUninit::<[u8; N]>::uninit();
             let mut bytes = unsafe { bytes.assume_init() };
             bytes[..].copy_from_slice(&self.input[..N]);
-            self.input = &self.input[N..];
+            (_, self.input) = self.input.split_at(N);
             Ok(bytes)
         }
     }
 
-    // Parse a string until the next '"' character.
-    //
-    // Makes no attempt to handle escape sequences. What did you expect? This is
-    // example code!
-    fn parse_string(&mut self) -> Result<&'de str> {
+    fn parse_bytes(&mut self) -> Result<&'de [u8]> {
         if self.input.len() == 0 {
             Err(Error::Eof)
         } else {
             let len = self.input[0] as usize;
-            if self.input.len() < len + 1 {
+            (_, self.input) = self.input.split_at(1);
+            if self.input.len() < len {
                 return Err(Error::Eof);
-                //return Err(Error::ExpectedString);
             }
-            let s = &self.input[1..];
-            let (le, ri) = s.split_at(len);
+            let (le, ri) = self.input.split_at(len);
             self.input = ri;
-            if let Ok(s) = std::str::from_utf8(le) {
-                Ok(s)
-            } else {
-                Err(Error::ExpectedString)
-            }
+            Ok(le)
+        }
+    }
+
+    // Parse a Pascal style utf8 string
+    fn parse_string(&mut self) -> Result<&'de str> {
+        let s = self.parse_bytes()?;
+        if let Ok(s) = std::str::from_utf8(s) {
+            Ok(s)
+        } else {
+            Err(Error::ExpectedString)
         }
     }
 }
@@ -252,11 +252,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
     // The `Serializer` implementation on the previous page serialized byte
     // arrays as JSON arrays of bytes. Handle that representation here.
-    fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        visitor.visit_borrowed_bytes(self.parse_bytes()?)
     }
 
     fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value>
@@ -459,22 +459,26 @@ impl<'de, 'a> SeqAccess<'de> for CommaSeparated<'a, 'de> {
 #[test]
 fn test_struct() {
     #[derive(Deserialize, PartialEq, Debug)]
-    struct Test {
+    struct Test<'a> {
         b: bool,
         int: u32,
         seq: Vec<String>,
+        bb: &'a [u8],
     }
 
     let j = [1u8, b'a'];
     let msg = ClMessage::new(&j[..]);
     let expected = "a".to_owned();
     assert_eq!(expected, from_msg::<String>(&msg).unwrap());
-    let j = [0, 1u8, 0, 0, 0, 2u8, 1, b'a', 1, b'b'];
+    let j = [
+        0, 1u8, 0, 0, 0, 2u8, 1, b'a', 1, b'b', 4, b't', b'e', b's', b't',
+    ];
     let msg = ClMessage::new(&j[..]);
     let expected = Test {
         b: false,
         int: 1,
         seq: vec!["a".to_owned(), "b".to_owned()],
+        bb: b"test",
     };
     assert_eq!(expected, from_msg(&msg).unwrap());
 }
