@@ -29,12 +29,7 @@ pub enum Error {
     ExpectedString,
     ExpectedNull,
     ExpectedArray,
-    ExpectedArrayComma,
-    ExpectedArrayEnd,
     ExpectedMap,
-    ExpectedMapColon,
-    ExpectedMapComma,
-    ExpectedMapEnd,
     ExpectedEnum,
     TrailingCharacters,
 }
@@ -56,18 +51,18 @@ impl Display for Error {
         match self {
             Error::Message(msg) => formatter.write_str(msg),
             Error::Eof => formatter.write_str("unexpected end of input"),
+            Error::NoBufs => formatter.write_str("No buffer for output"),
             Error::Syntax => formatter.write_str("syntax error"),
             Error::ExpectedBoolean => formatter.write_str("expect bool input"),
             Error::ExpectedInteger => formatter.write_str("expect int input"),
             Error::ExpectedString => formatter.write_str("expect string input"),
             Error::ExpectedNull => formatter.write_str("expect null input"),
             Error::ExpectedArray => formatter.write_str("expect array input"),
-            Error::ExpectedArrayEnd => formatter.write_str("expect array end"),
             Error::ExpectedMap => formatter.write_str("expect map input"),
-            Error::ExpectedMapEnd => formatter.write_str("expect map end"),
             Error::ExpectedEnum => formatter.write_str("expect enum input"),
+            Error::TrailingCharacters => formatter.write_str("trailing chars"),
             /* and so forth */
-            _ => todo!(),
+            //_ => todo!(),
         }
     }
 }

@@ -354,7 +354,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             if self.next_char()? == ']' {
                 Ok(value)
             } else {
-                Err(Error::ExpectedArrayEnd)
+                //Err(Error::ExpectedArrayEnd)
+                Err(Error::ExpectedArray)
             }
         } else {
             Err(Error::ExpectedArray)
@@ -402,7 +403,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             if self.next_char()? == '}' {
                 Ok(value)
             } else {
-                Err(Error::ExpectedMapEnd)
+                //Err(Error::ExpectedMapEnd)
+                Err(Error::ExpectedMap)
             }
         } else {
             Err(Error::ExpectedMap)
@@ -446,7 +448,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             if self.next_char()? == '}' {
                 Ok(value)
             } else {
-                Err(Error::ExpectedMapEnd)
+                //Err(Error::ExpectedMapEnd)
+                Err(Error::ExpectedMap)
             }
         } else {
             Err(Error::ExpectedEnum)
@@ -512,7 +515,7 @@ impl<'de, 'a> SeqAccess<'de> for CommaSeparated<'a, 'de> {
         }
         // Comma is required before every element except the first.
         if !self.first && self.de.next_char()? != ',' {
-            return Err(Error::ExpectedArrayComma);
+            //return Err(Error::ExpectedArrayComma);
         }
         self.first = false;
         // Deserialize an array element.
@@ -535,7 +538,7 @@ impl<'de, 'a> MapAccess<'de> for CommaSeparated<'a, 'de> {
         }
         // Comma is required before every entry except the first.
         if !self.first && self.de.next_char()? != ',' {
-            return Err(Error::ExpectedMapComma);
+            //return Err(Error::ExpectedMapComma);
         }
         self.first = false;
         // Deserialize a map key.
@@ -550,7 +553,7 @@ impl<'de, 'a> MapAccess<'de> for CommaSeparated<'a, 'de> {
         // of `next_key_seed` or at the beginning of `next_value_seed`. In this
         // case the code is a bit simpler having it here.
         if self.de.next_char()? != ':' {
-            return Err(Error::ExpectedMapColon);
+            //return Err(Error::ExpectedMapColon);
         }
         // Deserialize a map value.
         seed.deserialize(&mut *self.de)
@@ -588,7 +591,8 @@ impl<'de, 'a> EnumAccess<'de> for Enum<'a, 'de> {
         if self.de.next_char()? == ':' {
             Ok((val, self))
         } else {
-            Err(Error::ExpectedMapColon)
+            Err(Error::ExpectedMap)
+            //Err(Error::ExpectedMapColon)
         }
     }
 }

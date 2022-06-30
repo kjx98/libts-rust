@@ -124,6 +124,8 @@ mod tests {
     fn test_convert() {
         let msg1 = ClMessage::from("test");
         let da: [u8; 4] = [b't', b'e', b's', b't'];
+        let ss = std::str::from_utf8(&da[..]).unwrap();
+        assert_eq!(ss, "test");
         assert_eq!(msg1.cap(), 62);
         assert_eq!(msg1.len(), 4);
         assert_eq!(*msg1.data(), da[..]);
