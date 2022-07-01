@@ -22,15 +22,28 @@ impl<'de> Deserializer<'de> {
 }
 
 // By convention, the public API of a Serde deserializer is one or more
-// `from_xyz` methods such as `from_str`, `from_bytes`, or `from_reader`
+// `from_xyz` methods such as `from_msg`, `from_bytes`, or `from_reader`
 // depending on what Rust types the deserializer is able to consume as input.
 //
-// This basic deserializer supports only `from_str`.
+// This basic deserializer supports only `from_msg`, `from_bytes`.
 pub fn from_msg<'a, T>(s: &'a ClMessage) -> Result<T>
 where
     T: Deserialize<'a>,
 {
     let mut deserializer = Deserializer::from_bytes(s.data());
+    let t = T::deserialize(&mut deserializer)?;
+    if deserializer.input.is_empty() {
+        Ok(t)
+    } else {
+        Err(Error::TrailingCharacters)
+    }
+}
+
+pub fn from_bytes<'a, T>(s: &'a [u8]) -> Result<T>
+where
+    T: Deserialize<'a>,
+{
+    let mut deserializer = Deserializer::from_bytes(s);
     let t = T::deserialize(&mut deserializer)?;
     if deserializer.input.is_empty() {
         Ok(t)
@@ -473,12 +486,13 @@ fn test_struct() {
     let j = [
         0, 1u8, 0, 0, 0, 2u8, 1, b'a', 1, b'b', 4, b't', b'e', b's', b't',
     ];
-    let msg = ClMessage::new(&j[..]);
     let expected = Test {
         b: false,
         int: 1,
         seq: vec!["a".to_owned(), "b".to_owned()],
         bb: b"test",
     };
+    assert_eq!(expected, from_bytes(&j[..]).unwrap());
+    let msg = ClMessage::new(&j[..]);
     assert_eq!(expected, from_msg(&msg).unwrap());
 }

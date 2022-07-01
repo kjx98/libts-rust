@@ -14,7 +14,7 @@ mod unix_time;
 #[cfg(target_arch = "x86_64")]
 pub mod x86;
 
-pub use crate::serde::{from_msg, to_msg};
+pub use crate::serde::{from_bytes, from_msg, to_bytes, to_msg};
 pub use datetime::DateTime;
 pub use julian::Julian;
 pub use msg::ClMessage;

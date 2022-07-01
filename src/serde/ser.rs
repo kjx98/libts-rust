@@ -9,10 +9,10 @@ pub struct Serializer {
 }
 
 // By convention, the public API of a Serde serializer is one or more `to_abc`
-// functions such as `to_string`, `to_bytes`, or `to_writer` depending on what
+// functions such as `to_msg, `to_bytes`, or `to_writer` depending on what
 // Rust types the serializer is able to produce as output.
 //
-// This basic serializer supports only `to_string`.
+// This basic serializer supports only `to_msg`, `to_bytes`.
 pub fn to_msg<T>(value: &T) -> Result<ClMessage>
 where
     T: Serialize,
@@ -22,6 +22,17 @@ where
     };
     value.serialize(&mut serializer)?;
     Ok(serializer.output)
+}
+
+pub fn to_bytes<'a, T>(value: &'a T) -> Result<Vec<u8>>
+where
+    T: Serialize,
+{
+    let mut serializer = Serializer {
+        output: Default::default(),
+    };
+    value.serialize(&mut serializer)?;
+    Ok(serializer.output.data().to_vec())
 }
 
 impl<'a> ser::Serializer for &'a mut Serializer {
@@ -489,10 +500,12 @@ mod tests {
             int: 1,
             seq: vec!["a", "b"],
         };
-        let expected = [1u8, 0, 0, 0, 2, 1, b'a', 1, b'b'];
-        let expected = ClMessage::new(&expected[..]);
+        let expected_bytes = [1u8, 0, 0, 0, 2, 1, b'a', 1, b'b'];
+        let expected = ClMessage::new(&expected_bytes[..]);
         let msg = to_msg(&test).unwrap();
-        println!("msg of test: {}", msg);
+        //println!("msg of test: {}", msg);
         assert!(msg == expected);
+        let bytes = to_bytes(&test).unwrap();
+        assert_eq!(bytes, expected_bytes);
     }
 }
