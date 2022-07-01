@@ -1,6 +1,6 @@
 use serde::{ser, Serialize};
 
-use crate::serde::error::{Error, Result};
+use super::error::{Error, Result};
 use crate::ClMessage;
 
 pub struct Serializer {

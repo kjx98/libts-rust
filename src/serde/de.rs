@@ -2,7 +2,7 @@ use serde::de::{self, DeserializeSeed, SeqAccess, Visitor};
 use serde::Deserialize;
 use std::mem;
 
-use crate::serde::error::{Error, Result};
+use super::error::{Error, Result};
 use crate::ClMessage;
 
 pub struct Deserializer<'de> {
