@@ -8,6 +8,6 @@
 //! The protocol specification can be found on the [SHFE website](http://www.shfe.comcn/PITCHSpecification.pdf)
 
 mod enums;
-mod pitch;
+mod proto;
 
 pub use enums::*;

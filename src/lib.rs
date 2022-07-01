@@ -5,6 +5,7 @@ mod datetime;
 mod julian;
 pub mod measure;
 mod msg;
+mod pitch;
 mod price_type;
 mod serde;
 mod timestamp;
