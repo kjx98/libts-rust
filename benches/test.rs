@@ -3,7 +3,7 @@ extern crate bencher;
 
 //use serde::de::{self, DeserializeSeed, SeqAccess, Visitor};
 use bencher::Bencher;
-use libts::{from_msg, ClMessage, SysClock, UnixTime};
+use libts::{from_bytes, from_msg, ClMessage, SysClock, UnixTime};
 use serde::Deserialize;
 
 fn timeval_date_1k(bench: &mut Bencher) {
@@ -29,7 +29,8 @@ fn sysclock_1k(bench: &mut Bencher) {
 }
 
 fn from_msg_struct(bench: &mut Bencher) {
-    #[derive(Deserialize, PartialEq, Debug)]
+    #[allow(dead_code)]
+    #[derive(Deserialize)]
     struct Test<'a> {
         b: bool,
         int: u32,
@@ -46,5 +47,37 @@ fn from_msg_struct(bench: &mut Bencher) {
     })
 }
 
-benchmark_group!(benches, timeval_date_1k, sysclock_1k, from_msg_struct);
+fn from_msg_struct1(bench: &mut Bencher) {
+    #[allow(dead_code)]
+    #[derive(Deserialize)]
+    struct Test<'a> {
+        b: bool,
+        int: u32,
+        bb: &'a [u8],
+    }
+
+    let j = [0, 1u8, 0, 0, 0, 4, b't', b'e', b's', b't'];
+    let msg = ClMessage::new(&j[..]);
+    bench.iter(|| {
+        _ = from_msg::<Test>(&msg).unwrap();
+    })
+}
+
+fn from_bytes_struct(bench: &mut Bencher) {
+    let j = [0, 1u8, 0, 0, 0, 4, b't', b'e', b's', b't'];
+    bench.iter(|| {
+        let _b: bool = from_bytes(&j[0..1]).unwrap();
+        let _int: u32 = from_bytes(&j[1..5]).unwrap();
+        let _bb: &[u8] = from_bytes(&j[5..]).unwrap();
+    })
+}
+
+benchmark_group!(
+    benches,
+    timeval_date_1k,
+    sysclock_1k,
+    from_msg_struct,
+    from_msg_struct1,
+    from_bytes_struct,
+);
 benchmark_main!(benches);
