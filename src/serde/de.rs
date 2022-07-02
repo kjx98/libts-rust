@@ -341,24 +341,28 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     // As indicated by the length parameter, the `Deserialize` implementation
     // for a tuple in the Serde data model is required to know the length of the
     // tuple before even looking at the input data.
-    fn deserialize_tuple<V>(self, _len: usize, _visitor: V) -> Result<V::Value>
+    fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        // Give the visitor access to each element of the sequence.
+        let value = visitor.visit_seq(CommaSeparated::new(self, len as u8))?;
+        Ok(value)
     }
 
     // Tuple structs look just like sequences in JSON.
     fn deserialize_tuple_struct<V>(
         self,
         _name: &'static str,
-        _len: usize,
-        _visitor: V,
+        len: usize,
+        visitor: V,
     ) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        // Give the visitor access to each element of the sequence.
+        let value = visitor.visit_seq(CommaSeparated::new(self, len as u8))?;
+        Ok(value)
     }
 
     // Much like `deserialize_seq` but calls the visitors `visit_map` method

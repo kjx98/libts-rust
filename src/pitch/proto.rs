@@ -1,8 +1,9 @@
+use super::enums::{CancelReason, CrossType, EventCode, Side, TradingState};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SystemEventNet {
-    pub msg_type: u8,
+    pub tag: u8,
     pub event_code: u8,
     pub index: u16,
     pub tracking: u16,
@@ -10,9 +11,26 @@ pub struct SystemEventNet {
     pub timestamp: u32,
 }
 
+impl SystemEventNet {
+    pub fn event(&self) -> EventCode {
+        match self.event_code {
+            b'O' => EventCode::StartOfMessages,
+            b'S' => EventCode::StartOfSystemHours,
+            b'Q' => EventCode::StartOfMarketHours,
+            b'M' => EventCode::EndOfMarketHours,
+            b'E' => EventCode::EndOfSystemHours,
+            b'C' => EventCode::EndOfMessages,
+            b'A' => EventCode::EmergencyHalt,
+            b'R' => EventCode::EmergencyQuoteOnly,
+            b'B' => EventCode::EmergencyResumption,
+            _ => todo!(),
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SymbolDirectoryNet<'a> {
-    pub msg_type: u8,
+    pub tag: u8,
     pub market_category: u8,
     pub contract: &'a str,
     pub classification: u8,
@@ -28,7 +46,7 @@ pub struct SymbolDirectoryNet<'a> {
 
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SymbolTradingActionNet {
-    pub msg_type: u8,
+    pub tag: u8,
     pub trading_state: u8,
     pub reason: u16,
     pub index: u16,
@@ -36,9 +54,23 @@ pub struct SymbolTradingActionNet {
     pub timestamp: u32,
 }
 
+impl SymbolTradingActionNet {
+    pub fn state(&self) -> TradingState {
+        match self.trading_state {
+            b'H' => TradingState::Halted,
+            b'P' => TradingState::PreAuction,
+            b'A' => TradingState::Auction,
+            b'U' => TradingState::Paused,
+            b'C' => TradingState::Trading,
+            b'B' => TradingState::Break,
+            _ => todo!(),
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct AddOrderNet {
-    pub msg_type: u8,
+    pub tag: u8,
     pub buy_sell: u8,
     pub index: u16,
     pub tracking: u16,
@@ -48,9 +80,25 @@ pub struct AddOrderNet {
     pub price: i32,
 }
 
+fn bs_side(bs: u8) -> Side {
+    match bs {
+        b'B' => Side::Buy,
+        b'S' => Side::Sell,
+        b'C' => Side::BuyCover,
+        b'O' => Side::SellClose,
+        _ => todo!(),
+    }
+}
+
+impl AddOrderNet {
+    pub fn side(&self) -> Side {
+        bs_side(self.buy_sell)
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct OrderExecutedNet {
-    pub msg_type: u8,
+    pub tag: u8,
     pub printable: u8,
     pub index: u16,
     pub tracking: u16,
@@ -62,7 +110,7 @@ pub struct OrderExecutedNet {
 
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct OrderEexecutedWithPriceNet {
-    pub msg_type: u8,
+    pub tag: u8,
     pub printable: u8,
     pub index: u16,
     pub tracking: u16,
@@ -75,7 +123,7 @@ pub struct OrderEexecutedWithPriceNet {
 
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct OrderCancelNet {
-    pub msg_type: u8,
+    pub tag: u8,
     pub cancel_reason: u8,
     pub index: u16,
     pub tracking: u16,
@@ -84,9 +132,15 @@ pub struct OrderCancelNet {
     pub qty: u32,
 }
 
+impl OrderCancelNet {
+    pub fn reason(&self) -> CancelReason {
+        cancel_reason(self.cancel_reason)
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct OrderDeleteNet {
-    pub msg_type: u8,
+    pub tag: u8,
     pub cancel_reason: u8,
     pub index: u16,
     pub tracking: u16,
@@ -94,9 +148,28 @@ pub struct OrderDeleteNet {
     pub ref_no: u64,
 }
 
+impl OrderDeleteNet {
+    pub fn reason(&self) -> CancelReason {
+        cancel_reason(self.cancel_reason)
+    }
+}
+
+fn cancel_reason(r: u8) -> CancelReason {
+    match r {
+        b'U' => CancelReason::ByUser,
+        b'A' => CancelReason::Arb,
+        b'M' => CancelReason::ByModifyOrder,
+        b'O' => CancelReason::OddLot,
+        b'B' => CancelReason::OutOfPriceBand,
+        b'S' => CancelReason::BrokenSession,
+        b'N' => CancelReason::OutOfNormalTrading,
+        _ => todo!(),
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct OrderReplaceNet {
-    pub msg_type: u8,
+    pub tag: u8,
     pub index: u16,
     pub tracking: u16,
     pub timestamp: u32,
@@ -108,7 +181,7 @@ pub struct OrderReplaceNet {
 
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TradeNet {
-    pub msg_type: u8,
+    pub tag: u8,
     pub buy_sell: u8,
     pub index: u16,
     pub tracking: u16,
@@ -119,10 +192,16 @@ pub struct TradeNet {
     pub match_no: u64,
 }
 
+impl TradeNet {
+    pub fn side(&self) -> Side {
+        bs_side(self.buy_sell)
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct CrossTradeNet {
-    pub msg_type: u8,
-    pub cross_type: u8,
+    pub tag: u8,
+    pub type_: u8,
     pub index: u16,
     pub tracking: u16,
     pub timestamp: u32,
@@ -131,4 +210,16 @@ pub struct CrossTradeNet {
     pub pclose: i32,
     pub open_interest: u32,
     pub match_no: u64,
+}
+
+impl CrossTradeNet {
+    pub fn cross_type(&self) -> CrossType {
+        match self.type_ {
+            b'O' => CrossType::Opening,
+            b'C' => CrossType::Closing,
+            b'H' => CrossType::Halted,
+            b'I' => CrossType::Intraday,
+            _ => CrossType::Opening,
+        }
+    }
 }
