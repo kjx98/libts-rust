@@ -1,7 +1,7 @@
 use super::enums::{CancelReason, CrossType, EventCode, Side, TradingState};
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Default, Copy, Clone, PartialEq, Eq)]
 pub struct SystemEventNet {
     pub tag: u8,
     pub event_code: u8,
@@ -44,7 +44,7 @@ pub struct SymbolDirectoryNet<'a> {
     pub upper_limit: i32,
 }
 
-#[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Default, Copy, Clone, PartialEq, Eq)]
 pub struct SymbolTradingActionNet {
     pub tag: u8,
     pub trading_state: u8,
@@ -68,7 +68,7 @@ impl SymbolTradingActionNet {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Default, Copy, Clone, PartialEq, Eq)]
 pub struct AddOrderNet {
     pub tag: u8,
     pub buy_sell: u8,
@@ -198,7 +198,7 @@ impl TradeNet {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Default, Copy, Clone, PartialEq, Eq)]
 pub struct CrossTradeNet {
     pub tag: u8,
     pub type_: u8,
@@ -221,5 +221,47 @@ impl CrossTradeNet {
             b'I' => CrossType::Intraday,
             _ => CrossType::Opening,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_event() {
+        let mut ev: SystemEventNet = Default::default();
+        ev.event_code = EventCode::StartOfMessages as u8;
+        assert!(EventCode::StartOfMessages == ev.event());
+    }
+
+    #[test]
+    fn test_state() {
+        let mut sym_tr: SymbolTradingActionNet = Default::default();
+        sym_tr.trading_state = TradingState::PreAuction as u8;
+        assert_eq!(TradingState::PreAuction, sym_tr.state());
+    }
+
+    #[test]
+    fn test_side() {
+        let bs = Side::BuyCover as u8;
+        assert_eq!(Side::BuyCover, bs_side(bs));
+    }
+
+    #[test]
+    fn test_reason() {
+        let r = CancelReason::OddLot as u8;
+        assert_eq!(CancelReason::OddLot, cancel_reason(r));
+        let r = CancelReason::OutOfPriceBand as u8;
+        assert_eq!(CancelReason::OutOfPriceBand, cancel_reason(r));
+    }
+
+    #[test]
+    fn test_cross_type() {
+        let mut cr: CrossTradeNet = Default::default();
+        cr.type_ = CrossType::Closing as u8;
+        assert_eq!(CrossType::Closing, cr.cross_type());
+        cr.type_ = CrossType::Intraday as u8;
+        assert_eq!(CrossType::Intraday, cr.cross_type());
     }
 }

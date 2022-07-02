@@ -1,16 +1,16 @@
 use std::fmt;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventCode {
-    StartOfMessages,
-    StartOfSystemHours,
-    StartOfMarketHours,
-    EndOfMarketHours,
-    EndOfSystemHours,
-    EndOfMessages,
-    EmergencyHalt,
-    EmergencyQuoteOnly,
-    EmergencyResumption,
+    StartOfMessages = b'O' as isize,
+    StartOfSystemHours = b'S' as isize,
+    StartOfMarketHours = b'Q' as isize,
+    EndOfMarketHours = b'M' as isize,
+    EndOfSystemHours = b'E' as isize,
+    EndOfMessages = b'C' as isize,
+    EmergencyHalt = b'A' as isize,
+    EmergencyQuoteOnly = b'R' as isize,
+    EmergencyResumption = b'B' as isize,
 }
 
 impl fmt::Display for EventCode {
@@ -81,14 +81,14 @@ pub enum MarketParticipantState {
     Deleted,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TradingState {
-    Halted,
-    PreAuction,
-    Auction,
-    Paused,
-    Trading,
-    Break,
+    Halted = b'H' as isize,
+    PreAuction = b'P' as isize,
+    Auction = b'A' as isize,
+    Paused = b'U' as isize,
+    Trading = b'C' as isize,
+    Break = b'B' as isize,
 }
 
 impl fmt::Display for TradingState {
@@ -104,12 +104,12 @@ impl fmt::Display for TradingState {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
-    Buy,
-    Sell,
-    BuyCover,
-    SellClose,
+    Buy = b'B' as isize,
+    Sell = b'S' as isize,
+    BuyCover = b'C' as isize,
+    SellClose = b'O' as isize,
 }
 
 impl fmt::Display for Side {
@@ -123,15 +123,15 @@ impl fmt::Display for Side {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CancelReason {
-    ByUser,
-    Arb,
-    ByModifyOrder,
-    OddLot,
-    OutOfPriceBand,
-    BrokenSession,
-    OutOfNormalTrading,
+    ByUser = b'U' as isize,
+    Arb = b'A' as isize,
+    ByModifyOrder = b'M' as isize,
+    OddLot = b'O' as isize,
+    OutOfPriceBand = b'B' as isize,
+    BrokenSession = b'S' as isize,
+    OutOfNormalTrading = b'N' as isize,
 }
 
 impl fmt::Display for CancelReason {
@@ -157,12 +157,12 @@ pub enum ImbalanceDirection {
     InsufficientOrders,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CrossType {
-    Opening,
-    Closing,
-    Halted,
-    Intraday,
+    Opening = b'O' as isize,
+    Closing = b'C' as isize,
+    Halted = b'H' as isize,
+    Intraday = b'I' as isize,
 }
 
 impl fmt::Display for CrossType {
