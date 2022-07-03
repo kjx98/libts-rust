@@ -32,7 +32,7 @@ impl SystemEventNet {
 pub struct SymbolDirectoryNet<'a> {
     pub tag: u8,
     pub market_category: u8,
-    pub contract: &'a str,
+    pub symbol: &'a str,
     pub classification: u8,
     pub precision: u8,
     pub index: u16,
@@ -99,7 +99,7 @@ impl AddOrderNet {
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct OrderExecutedNet {
     pub tag: u8,
-    pub printable: u8,
+    pub printable: bool,
     pub index: u16,
     pub tracking: u16,
     pub timestamp: u32,
@@ -109,9 +109,9 @@ pub struct OrderExecutedNet {
 }
 
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct OrderEexecutedWithPriceNet {
+pub struct OrderExecutedWithPriceNet {
     pub tag: u8,
-    pub printable: u8,
+    pub printable: bool,
     pub index: u16,
     pub tracking: u16,
     pub timestamp: u32,
