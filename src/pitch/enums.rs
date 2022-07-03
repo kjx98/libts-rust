@@ -32,14 +32,14 @@ impl fmt::Display for EventCode {
 #[allow(dead_code)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum MarketCategory {
-    Shfe,
-    Dce,
-    Czce,
-    Cffex,
-    Gce,
-    Sse,
-    Szse,
-    Unavailable,
+    Shfe = b'H' as isize,
+    Dce = b'D' as isize,
+    Czce = b'C' as isize,
+    Cffex = b'F' as isize,
+    Gce = b'G' as isize,
+    Sse = b'S' as isize,
+    Szse = b'Z' as isize,
+    Unavailable = 0u8 as isize,
 }
 
 #[allow(dead_code)]

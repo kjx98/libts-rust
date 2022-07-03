@@ -14,8 +14,8 @@ pub struct Deserializer<'de> {
 impl<'de> Deserializer<'de> {
     // By convention, `Deserializer` constructors are named like `from_xyz`.
     // That way basic use cases are satisfied by something like
-    // `serde_json::from_str(...)` while advanced use cases that require a
-    // deserializer can make one with `serde_json::Deserializer::from_str(...)`.
+    // `serde_b::from_bytes(...)` while advanced use cases that require a
+    // deserializer can make one with `serde_b::Deserializer::from_bytes(...)`.
     pub fn from_bytes(input: &'de [u8]) -> Self {
         Deserializer { input }
     }
@@ -499,4 +499,12 @@ fn test_struct() {
     assert_eq!(expected, from_bytes(&j[..]).unwrap());
     let msg = ClMessage::new(&j[..]);
     assert_eq!(expected, from_msg(&msg).unwrap());
+    let expected = (
+        false,
+        1u32,
+        vec!["a".to_owned(), "b".to_owned()],
+        &b"test"[..],
+    );
+    let got: (bool, u32, Vec<String>, &[u8]) = from_bytes(&j[..]).unwrap();
+    assert_eq!(expected, got);
 }
