@@ -35,9 +35,29 @@ pub struct SystemEvent {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct SymbolDirectory<'a> {
+    pub symbol: &'a str,
+    pub market_category: u8, //MarketCategory,
+    pub classification: u8,  //IssueClassification,
+    pub precision: u8,
+    pub round_lot_size: u32,
+    pub turnover_multi: u32,
+    pub lower_limit: i32,
+    pub upper_limit: i32,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct TradingAction {
     pub trading_state: TradingState,
     pub reason: u16, //String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AddOrder {
+    pub reference: u64,
+    pub side: Side,
+    pub qty: u32,
+    pub price: i32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -70,25 +90,6 @@ pub struct OrderDelete {
     pub reference: u64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct SymbolDirectory<'a> {
-    pub symbol: &'a str,
-    pub market_category: u8, //MarketCategory,
-    pub classification: u8,  //IssueClassification,
-    pub precision: u8,
-    pub round_lot_size: u32,
-    pub turnover_multi: u32,
-    pub lower_limit: i32,
-    pub upper_limit: i32,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct AddOrder {
-    pub reference: u64,
-    pub side: Side,
-    pub qty: u32,
-    pub price: i32,
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReplaceOrder {
@@ -109,10 +110,12 @@ pub struct Trade {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CrossTrade {
-    pub qty: u64,
+    pub qty: u32,
     pub price: i32,
     pub match_no: u64,
     pub cross_type: CrossType,
+    pub pclose: i32,
+    pub open_interest: u32,
 }
 
 impl<'a> From<SystemEventNet> for Message<'a> {
@@ -240,6 +243,36 @@ impl<'a> From<OrderExecutedWithPriceNet> for Message<'a> {
     }
 }
 
+impl<'a> From<OrderCancelNet> for Message<'a> {
+    fn from(s: OrderCancelNet) -> Message<'a> {
+        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (reason, reference, cancelled) = (s.reason(), s.ref_no, s.qty);
+        let body = Body::<'a>::OrderCancelled(OrderCancelled{reason, reference, cancelled});
+        Message {
+            tag,
+            index,
+            tracking,
+            timestamp,
+            body,
+        }
+    }
+}
+
+impl<'a> From<OrderDeleteNet> for Message<'a> {
+    fn from(s: OrderDeleteNet) -> Message<'a> {
+        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (reason, reference) = (s.reason(), s.ref_no);
+        let body = Body::<'a>::OrderDelete(OrderDelete{reason, reference});
+        Message {
+            tag,
+            index,
+            tracking,
+            timestamp,
+            body,
+        }
+    }
+}
+
 impl<'a> From<OrderReplaceNet> for Message<'a> {
     fn from(s: OrderReplaceNet) -> Message<'a> {
         let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
@@ -251,6 +284,40 @@ impl<'a> From<OrderReplaceNet> for Message<'a> {
             qty,
             price,
         });
+        Message {
+            tag,
+            index,
+            tracking,
+            timestamp,
+            body,
+        }
+    }
+}
+
+impl<'a> From<TradeNet> for Message<'a> {
+    fn from(s: TradeNet) -> Message<'a> {
+        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (reference, qty, price, match_no) = (s.ref_no, s.qty, s.price, s.match_no);
+        let side = s.side();
+        let body = Body::<'a>::Trade(Trade{reference, side, qty, price, match_no});
+        Message {
+            tag,
+            index,
+            tracking,
+            timestamp,
+            body,
+        }
+    }
+}
+
+impl<'a> From<CrossTradeNet> for Message<'a> {
+    fn from(s: CrossTradeNet) -> Message<'a> {
+        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (qty, price, match_no) = (s.qty, s.price, s.match_no);
+        let cross_type = s.cross_type();
+        let (pclose, open_interest) = (s.pclose, s.open_interest);
+        let body = Body::<'a>::CrossTrade(CrossTrade{qty, price, match_no,
+                    cross_type, pclose, open_interest});
         Message {
             tag,
             index,
