@@ -3,6 +3,7 @@ extern crate bencher;
 
 //use serde::de::{self, DeserializeSeed, SeqAccess, Visitor};
 use bencher::Bencher;
+use libts::pitch::{from_bytes as pitch_bytes, Message};
 use libts::{from_bytes, from_msg, ClMessage, SysClock, UnixTime};
 use serde::Deserialize;
 
@@ -72,6 +73,16 @@ fn from_bytes_struct(bench: &mut Bencher) {
     })
 }
 
+fn from_bytes_add_order(bench: &mut Bencher) {
+    let buf: Vec<u8> = vec![
+        b'A', b'B', 1, 0, 2, 0, 123, 202, 91, 7, 238, 151, 122, 20, 47, 0, 0, 0, 100, 0, 0, 0, 106,
+        199, 0, 0,
+    ];
+    bench.iter(|| {
+        let _msg: Message = pitch_bytes(&buf[..]).unwrap();
+    })
+}
+
 benchmark_group!(
     benches,
     timeval_date_1k,
@@ -79,5 +90,6 @@ benchmark_group!(
     from_msg_struct,
     from_msg_struct1,
     from_bytes_struct,
+    from_bytes_add_order,
 );
 benchmark_main!(benches);
