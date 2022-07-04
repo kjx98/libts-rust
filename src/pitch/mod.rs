@@ -12,4 +12,4 @@ mod pitch;
 mod proto;
 
 pub use enums::*;
-pub use pitch::{from_bytes, to_bytes, Message};
+pub use pitch::*;

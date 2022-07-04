@@ -63,16 +63,6 @@ pub enum IssueClassification {
 
 #[allow(dead_code)]
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum MarketMakerMode {
-    Normal,
-    Passive,
-    Syndicate,
-    Presyndicate,
-    Penalty,
-}
-
-#[allow(dead_code)]
-#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum MarketParticipantState {
     Active,
     Excused,

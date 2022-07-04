@@ -14,10 +14,10 @@ use crate::{from_bytes as de_from_bytes, to_bytes as ser_to_bytes};
 //use std::fmt;
 
 /// An PITCH protocol message. Refer to the protocol spec for interpretation.
+/// Message Type
+///    pub tag: u8
 #[derive(Debug, Clone, PartialEq)]
 pub struct Message<'a> {
-    /// Message Type
-    pub tag: u8,
     /// Integer identifying the underlying instrument updated daily
     pub index: u16,
     /// internal tracking number
@@ -149,7 +149,8 @@ pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
         }
         Body::AddOrder(s) => {
             let tag = b'A';
-            let (buy_sell, ref_no, qty, price) = (s.side as u8, s.reference, s.qty, s.price);
+            let (buy_sell, ref_no) = (s.side as u8, s.reference);
+            let (qty, price) = (s.qty, s.price);
             let src = AddOrderNet {
                 tag,
                 index,
@@ -164,7 +165,8 @@ pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
         }
         Body::OrderExecuted(s) => {
             let tag = b'E';
-            let (printable, ref_no, qty, match_no) = (s.printable, s.reference, s.qty, s.match_no);
+            let (printable, ref_no) = (s.printable, s.reference);
+            let (qty, match_no) = (s.qty, s.match_no);
             let src = OrderExecutedNet {
                 tag,
                 index,
@@ -196,7 +198,8 @@ pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
         }
         Body::OrderCancelled(s) => {
             let tag = b'X';
-            let (cancel_reason, ref_no, qty) = (s.reason as u8, s.reference, s.cancelled);
+            let cancel_reason = s.reason as u8;
+            let (ref_no, qty) = (s.reference, s.cancelled);
             let src = OrderCancelNet {
                 tag,
                 index,
@@ -256,7 +259,8 @@ pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
         }
         Body::CrossTrade(s) => {
             let tag = b'Q';
-            let (qty, price, match_no, type_) = (s.qty, s.price, s.match_no, s.cross_type as u8);
+            let (qty, price) = (s.qty, s.price);
+            let (match_no, type_) = (s.match_no, s.cross_type as u8);
             let (pclose, open_interest) = (s.pclose, s.open_interest);
             let src = CrossTradeNet {
                 tag,
@@ -368,12 +372,11 @@ pub struct CrossTrade {
 
 impl<'a> From<SystemEventNet> for Message<'a> {
     fn from(s: SystemEventNet) -> Message<'a> {
-        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let event = s.event();
         let time_hours = s.time_hours;
         let body = Body::<'a>::SystemEvent(SystemEvent { event, time_hours });
         Message {
-            tag,
             index,
             tracking,
             timestamp,
@@ -384,7 +387,7 @@ impl<'a> From<SystemEventNet> for Message<'a> {
 
 impl<'a> From<SymbolDirectoryNet<'a>> for Message<'a> {
     fn from(s: SymbolDirectoryNet<'a>) -> Message<'a> {
-        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (market_category, symbol, classification, precision) =
             (s.market_category, s.symbol, s.classification, s.precision);
         let (round_lot_size, turnover_multi, lower_limit, upper_limit) =
@@ -400,7 +403,6 @@ impl<'a> From<SymbolDirectoryNet<'a>> for Message<'a> {
             upper_limit,
         });
         Message {
-            tag,
             index,
             tracking,
             timestamp,
@@ -411,7 +413,7 @@ impl<'a> From<SymbolDirectoryNet<'a>> for Message<'a> {
 
 impl<'a> From<SymbolTradingActionNet> for Message<'a> {
     fn from(s: SymbolTradingActionNet) -> Message<'a> {
-        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let trading_state = s.state();
         let reason = s.reason;
         let body = Body::<'a>::TradingAction(TradingAction {
@@ -419,7 +421,6 @@ impl<'a> From<SymbolTradingActionNet> for Message<'a> {
             reason,
         });
         Message {
-            tag,
             index,
             tracking,
             timestamp,
@@ -430,7 +431,7 @@ impl<'a> From<SymbolTradingActionNet> for Message<'a> {
 
 impl<'a> From<AddOrderNet> for Message<'a> {
     fn from(s: AddOrderNet) -> Message<'a> {
-        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (reference, qty, price) = (s.ref_no, s.qty, s.price);
         let side = s.side();
         let body = Body::<'a>::AddOrder(AddOrder {
@@ -440,7 +441,6 @@ impl<'a> From<AddOrderNet> for Message<'a> {
             price,
         });
         Message {
-            tag,
             index,
             tracking,
             timestamp,
@@ -451,7 +451,7 @@ impl<'a> From<AddOrderNet> for Message<'a> {
 
 impl<'a> From<OrderExecutedNet> for Message<'a> {
     fn from(s: OrderExecutedNet) -> Message<'a> {
-        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (printable, reference, qty, match_no) = (s.printable, s.ref_no, s.qty, s.match_no);
         let body = Body::<'a>::OrderExecuted(OrderExecuted {
             printable,
@@ -460,7 +460,6 @@ impl<'a> From<OrderExecutedNet> for Message<'a> {
             match_no,
         });
         Message {
-            tag,
             index,
             tracking,
             timestamp,
@@ -471,7 +470,7 @@ impl<'a> From<OrderExecutedNet> for Message<'a> {
 
 impl<'a> From<OrderExecutedWithPriceNet> for Message<'a> {
     fn from(s: OrderExecutedWithPriceNet) -> Message<'a> {
-        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (printable, reference, qty, match_no, price) =
             (s.printable, s.ref_no, s.qty, s.match_no, s.price);
         let body = Body::<'a>::OrderExecutedWithPrice(OrderExecutedWithPrice {
@@ -482,7 +481,6 @@ impl<'a> From<OrderExecutedWithPriceNet> for Message<'a> {
             price,
         });
         Message {
-            tag,
             index,
             tracking,
             timestamp,
@@ -493,7 +491,7 @@ impl<'a> From<OrderExecutedWithPriceNet> for Message<'a> {
 
 impl<'a> From<OrderCancelNet> for Message<'a> {
     fn from(s: OrderCancelNet) -> Message<'a> {
-        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (reason, reference, cancelled) = (s.reason(), s.ref_no, s.qty);
         let body = Body::<'a>::OrderCancelled(OrderCancelled {
             reason,
@@ -501,7 +499,6 @@ impl<'a> From<OrderCancelNet> for Message<'a> {
             cancelled,
         });
         Message {
-            tag,
             index,
             tracking,
             timestamp,
@@ -512,11 +509,10 @@ impl<'a> From<OrderCancelNet> for Message<'a> {
 
 impl<'a> From<OrderDeleteNet> for Message<'a> {
     fn from(s: OrderDeleteNet) -> Message<'a> {
-        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (reason, reference) = (s.reason(), s.ref_no);
         let body = Body::<'a>::OrderDelete(OrderDelete { reason, reference });
         Message {
-            tag,
             index,
             tracking,
             timestamp,
@@ -527,7 +523,7 @@ impl<'a> From<OrderDeleteNet> for Message<'a> {
 
 impl<'a> From<OrderReplaceNet> for Message<'a> {
     fn from(s: OrderReplaceNet) -> Message<'a> {
-        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (qty, price) = (s.qty, s.price);
         let (old_reference, new_reference) = (s.ref_no, s.new_ref_no);
         let body = Body::<'a>::ReplaceOrder(ReplaceOrder {
@@ -537,7 +533,6 @@ impl<'a> From<OrderReplaceNet> for Message<'a> {
             price,
         });
         Message {
-            tag,
             index,
             tracking,
             timestamp,
@@ -548,7 +543,7 @@ impl<'a> From<OrderReplaceNet> for Message<'a> {
 
 impl<'a> From<TradeNet> for Message<'a> {
     fn from(s: TradeNet) -> Message<'a> {
-        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (reference, qty, price, match_no) = (s.ref_no, s.qty, s.price, s.match_no);
         let side = s.side();
         let body = Body::<'a>::Trade(Trade {
@@ -559,7 +554,6 @@ impl<'a> From<TradeNet> for Message<'a> {
             match_no,
         });
         Message {
-            tag,
             index,
             tracking,
             timestamp,
@@ -570,7 +564,7 @@ impl<'a> From<TradeNet> for Message<'a> {
 
 impl<'a> From<CrossTradeNet> for Message<'a> {
     fn from(s: CrossTradeNet) -> Message<'a> {
-        let (tag, index, tracking, timestamp) = (s.tag, s.index, s.tracking, s.timestamp);
+        let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (qty, price, match_no) = (s.qty, s.price, s.match_no);
         let cross_type = s.cross_type();
         let (pclose, open_interest) = (s.pclose, s.open_interest);
@@ -583,7 +577,6 @@ impl<'a> From<CrossTradeNet> for Message<'a> {
             open_interest,
         });
         Message {
-            tag,
             index,
             tracking,
             timestamp,
@@ -615,7 +608,6 @@ mod tests {
     #[test]
     fn test_to_bytes() {
         let msg = Message {
-            tag: b'A',
             index: 1,
             tracking: 2,
             timestamp: 123456123,
@@ -637,7 +629,6 @@ mod tests {
     #[test]
     fn test_from_bytes() {
         let expected = Message {
-            tag: b'A',
             index: 1,
             tracking: 2,
             timestamp: 123456123,
