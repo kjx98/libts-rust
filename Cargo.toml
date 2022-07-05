@@ -7,7 +7,7 @@ license = "Apache-2.0"
 homepage = "https://github.com/kjx98/libts-rust"
 documentation = "https://docs.rs/libts"
 readme = "README.md"
-keywords = [ "libts", "Trade System"]
+keywords = [ "libts", "trade"]
 repository = "https://github.com/kjx98/libts-rust"
 edition = "2021"
 
