@@ -28,11 +28,9 @@ https://travis-ci.org/kjx98/libts-rust)
 ### 准备工作
 主要开发工具及版本
 * Linux: AlmaLinux 8.5 w/ rustup
-	* cmake version 3.13
-	* gcc 11
-	* build via cmake
+	* cargo test, rustfmt, clippy
 * Windows:
-	* cargo test
+	* cargo test, rustfmt, clippy
 * 开启 compiler 全部的警告信息：警告信息的重要性，相信不用再提醒了。
 	* 警告信息 -- 零容忍。
 * UnitTest tools
@@ -52,7 +50,7 @@ https://travis-ci.org/kjx98/libts-rust)
   暂不支持Rust enum及其派生类型，完美支持tuple/struct类型
 
 ### timestamp
-  timeval类 简单包封timespec结构并采用int32_t 表示秒以及纳秒
+  timeval类 简单包封timespec结构并采用u64/u32 表示秒以及纳秒
   sysclock类 用于重演/模拟环境的系统时钟
   timestamp 抽象毫秒/微秒/纳秒级别时间戳
   DateTime 抽象 毫秒/微秒/纳秒级别 的日期时间点
