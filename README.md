@@ -58,6 +58,9 @@ https://travis-ci.org/kjx98/libts-rust)
 ### priceType
   定点数与浮点double的相互转换
 
+### Mmap
+  支持大页的共享内存mmap
+
 ### pitch proto
   类似ITCH的逐笔行情协议，在ThinkPad T440s实现每秒超两千五百万笔行情解码。
 
