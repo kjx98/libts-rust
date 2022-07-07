@@ -1,6 +1,6 @@
 use libc::{c_int, c_void, size_t};
 use std::fs::{File, OpenOptions};
-use std::io::{Read, Result};
+use std::io::{Error, ErrorKind, Read, Result};
 use std::os::unix::io::AsRawFd;
 
 #[cfg(target_os = "linux")]
@@ -79,7 +79,7 @@ impl Drop for Mmap {
 }
 
 impl Mmap {
-    pub fn new(fp: &str, len: usize, hugepage: bool, read_only: bool) -> Mmap {
+    pub fn new(fp: &str, len: u64, hugepage: bool, read_only: bool) -> Mmap {
         let len = len as size_t;
         let base = 0 as *mut c_void;
         let flags: c_int = if hugepage {
@@ -160,8 +160,8 @@ impl Mmap {
             }
         }
     }
-    pub fn as_ptr(&self) -> *const u8 {
-        self.base as *const u8
+    pub fn ptr(&self) -> *const c_void {
+        self.base as *const c_void
     }
     pub fn mut_ptr(&mut self) -> *mut c_void {
         self.base
@@ -172,12 +172,12 @@ impl Mmap {
     pub fn is_null(&self) -> bool {
         self.base.is_null()
     }
-    pub fn as_bytes(&self) -> Option<&[u8]> {
+    pub fn as_bytes(&self) -> Result<&[u8]> {
         if self.base.is_null() {
-            return None;
+            return Err(Error::from(ErrorKind::UnexpectedEof));
         }
-        let slice = unsafe { &(*std::ptr::slice_from_raw_parts(self.as_ptr(), self.len())) };
-        Some(slice)
+        let slice = unsafe { &(*std::ptr::slice_from_raw_parts(self.base as *const u8, self.len)) };
+        Ok(slice)
     }
     pub fn as_slice<T: Sized>(&self) -> Option<&[T]> {
         if self.base.is_null() {
@@ -188,6 +188,9 @@ impl Mmap {
             return None;
         }
         let slen = self.len() / slen;
+        if slen == 0 {
+            return None;
+        }
         let addr = self.base as *const T;
         let slice = unsafe { &(*std::ptr::slice_from_raw_parts(addr, slen)) };
         Some(slice)
@@ -220,5 +223,9 @@ mod tests {
         //let mut map = Mmap::new("mdseries.bin", 2147483648, true, false);
         let mut map = Mmap::new("mdseries.bin", 2147483648, true, true);
         println!("mmap open: {}", map.open());
+        let addr = map.mut_ptr();
+        let addr1 = unsafe { addr.add(64) };
+        assert!(addr != addr1);
+        println!("addr/addr1: {:x}/{:x}", addr as usize, addr1 as usize);
     }
 }

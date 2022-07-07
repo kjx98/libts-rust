@@ -15,6 +15,7 @@ pub struct DateTime<const DUR: u32 = 1, const IS_UTC: bool = false> {
 
 pub type DateTimeUs = DateTime<TS3_TIME_MICRO>;
 pub type DateTimeMs = DateTime<TS3_TIME_MILLI>;
+pub type DateTimeSec = DateTime<TS3_TIME_SECOND>;
 
 impl<const DUR: u32, const IS_UTC: bool> PartialEq for DateTime<DUR, IS_UTC> {
     fn eq(&self, other: &Self) -> bool {
@@ -122,7 +123,7 @@ impl DateTime<TS3_TIME_MICRO, false> {
 }
 
 impl<const DUR: u32, const IS_UTC: bool> DateTime<DUR, IS_UTC> {
-    const fn new(time: i64) -> DateTime<DUR, IS_UTC> {
+    pub const fn new(time: i64) -> DateTime<DUR, IS_UTC> {
         assert!(DUR != 0);
         DateTime::<DUR, IS_UTC> { time }
     }
@@ -142,6 +143,9 @@ mod tests {
     use super::*;
     #[test]
     fn test_datetime() {
+        use std::mem;
+        assert_eq!(mem::size_of::<DateTime>(), 8);
+        assert_eq!(mem::size_of::<DateTime<TS3_TIME_MILLI>>(), 8);
         let dt = DateTime::<TS3_TIME_MILLI>::new(8123);
         assert_eq!(dt.as_secs(), 8);
         assert_eq!(dt.as_secs_f64(), 8.123);
