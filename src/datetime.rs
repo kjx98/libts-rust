@@ -13,6 +13,9 @@ pub struct DateTime<const DUR: u32 = 1, const IS_UTC: bool = false> {
     time: i64,
 }
 
+pub type DateTimeUs = DateTime<TS3_TIME_MICRO>;
+pub type DateTimeMs = DateTime<TS3_TIME_MILLI>;
+
 impl<const DUR: u32, const IS_UTC: bool> PartialEq for DateTime<DUR, IS_UTC> {
     fn eq(&self, other: &Self) -> bool {
         self.time == other.time

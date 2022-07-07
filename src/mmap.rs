@@ -1,6 +1,6 @@
 use libc::{c_int, c_void, size_t};
 use std::fs::{File, OpenOptions};
-use std::io::Read;
+use std::io::{Read, Result};
 use std::os::unix::io::AsRawFd;
 
 #[cfg(target_os = "linux")]
@@ -12,38 +12,54 @@ fn file_readable(f: &str) -> bool {
     }
 }
 
+#[cfg(target_os = "linux")]
+fn file_len(f: &str) -> Result<u64> {
+    use std::io::{Seek, SeekFrom};
+    let mut fd = File::open(f)?;
+    fd.seek(SeekFrom::End(0))
+}
+
 // hugetlbfs based shared data path
 #[cfg(target_os = "linux")]
-pub fn hp_path(fb: &str) -> Option<String> {
-    if let Ok(mut f) = File::open("/proc/mounts") {
-        let mut ss = String::new();
-        _ = f.read_to_string(&mut ss);
-        let mut it = ss.lines();
-        while let Some(aline) = it.next() {
-            let v: Vec<&str> = aline.split(' ').collect();
-            if v.len() < 4 {
-                continue;
-            }
-            if v[0] == "overlay" && v[1] == "/" {
-                #[cfg(test)]
-                println!(
-                    "overlay mount {} type {}, running within container",
-                    v[1], v[2]
-                );
-                continue;
-            }
-            if v[2] != "hugetlbfs" {
-                continue;
-            }
-            let fpath: String = v[1].to_owned() + "/" + fb;
-            if file_readable(&fpath) {
-                #[cfg(test)]
-                println!("use {} as shared memory path", &fpath);
-                return Some(fpath);
+pub fn hp_path(fb: &str) -> Result<String> {
+    let mut f = File::open("/proc/mounts")?;
+    let mut ss = String::new();
+    _ = f.read_to_string(&mut ss);
+    let mut it = ss.lines();
+    let mut sf_len = 0u64;
+    let mut res = String::new();
+    while let Some(aline) = it.next() {
+        let v: Vec<&str> = aline.split(' ').collect();
+        if v.len() < 4 {
+            continue;
+        }
+        if v[0] == "overlay" && v[1] == "/" {
+            #[cfg(test)]
+            println!(
+                "overlay mount {} type {}, running within container",
+                v[1], v[2]
+            );
+            continue;
+        }
+        if v[2] != "hugetlbfs" {
+            continue;
+        }
+        let fpath: String = v[1].to_owned() + "/" + fb;
+        if file_readable(&fpath) {
+            #[cfg(test)]
+            println!("may use {} as shared memory path", &fpath);
+            let flen = file_len(&fpath)?;
+            if flen >= sf_len {
+                res = fpath;
+                sf_len = flen;
             }
         }
     }
-    None
+    #[cfg(test)]
+    if res.len() > 0 {
+        println!("selected {} size({}) as shared memory", &res, sf_len);
+    }
+    Ok(res)
 }
 
 pub struct Mmap {
@@ -74,7 +90,7 @@ impl Mmap {
         let path = if !hugepage {
             "/dev/mem/".to_owned() + fp
         } else {
-            if let Some(ss) = hp_path(fp) {
+            if let Ok(ss) = hp_path(fp) {
                 ss
             } else {
                 "/dev/mem/".to_owned() + fp
@@ -91,6 +107,13 @@ impl Mmap {
     pub fn open(&mut self) -> bool {
         let nullptr = 0 as *mut c_void;
         let fd = if self.read_only {
+            if let Ok(ll) = file_len(&self.path) {
+                if ll == 0 {
+                    return false;
+                }
+            } else {
+                return false;
+            }
             if let Ok(fd) = OpenOptions::new().read(true).open(&self.path) {
                 fd
             } else {
@@ -104,33 +127,26 @@ impl Mmap {
                 return false;
             }
         };
-        if self.read_only {
-            unsafe {
-                self.base = libc::mmap(
-                    nullptr,
-                    self.len,
-                    libc::PROT_READ,
-                    libc::MAP_SHARED | self.flags,
-                    fd.as_raw_fd(),
-                    0,
-                );
-            }
+        let prot = if self.read_only {
+            libc::PROT_READ
         } else {
-            unsafe {
-                self.base = libc::mmap(
-                    nullptr,
-                    self.len,
-                    libc::PROT_READ | libc::PROT_WRITE,
-                    libc::MAP_SHARED | self.flags,
-                    fd.as_raw_fd(),
-                    0,
-                );
-                #[cfg(test)]
-                if self.base.is_null() {
-                    use std::ffi::CString;
-                    let s = CString::new("mmap failed").expect("CString failed");
-                    libc::perror(s.as_ptr());
-                }
+            libc::PROT_READ | libc::PROT_WRITE
+        };
+        unsafe {
+            use std::os::unix::io::AsRawFd;
+            self.base = libc::mmap(
+                nullptr,
+                self.len,
+                prot,
+                libc::MAP_SHARED | self.flags,
+                fd.as_raw_fd(),
+                0,
+            );
+            #[cfg(test)]
+            if self.base.is_null() {
+                use std::ffi::CString;
+                let s = CString::new("mmap failed").expect("CString failed");
+                libc::perror(s.as_ptr());
             }
         }
         self.base != nullptr
@@ -161,6 +177,19 @@ impl Mmap {
         let slice = unsafe { &(*std::ptr::slice_from_raw_parts(self.as_ptr(), self.len())) };
         Some(slice)
     }
+    pub fn as_slice<T: Sized>(&self) -> Option<&[T]> {
+        if self.base.is_null() {
+            return None;
+        }
+        let slen = std::mem::size_of::<T>();
+        if slen == 0 {
+            return None;
+        }
+        let slen = self.len() / slen;
+        let addr = self.base as *const T;
+        let slice = unsafe { &(*std::ptr::slice_from_raw_parts(addr, slen)) };
+        Some(slice)
+    }
 }
 
 #[repr(C)]
@@ -188,7 +217,7 @@ mod tests {
     #[test]
     fn test_hp_path() {
         let ss = "mdseries.bin";
-        if let Some(fpath) = hp_path(ss) {
+        if let Ok(fpath) = hp_path(ss) {
             println!("got {} shared memory path: {}", ss, fpath);
         } else {
             println!("no {} on shared memory", ss);
