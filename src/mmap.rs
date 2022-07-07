@@ -133,7 +133,6 @@ impl Mmap {
             libc::PROT_READ | libc::PROT_WRITE
         };
         unsafe {
-            use std::os::unix::io::AsRawFd;
             self.base = libc::mmap(
                 nullptr,
                 self.len,
@@ -164,6 +163,9 @@ impl Mmap {
     pub fn as_ptr(&self) -> *const u8 {
         self.base as *const u8
     }
+    pub fn mut_ptr(&mut self) -> *mut c_void {
+        self.base
+    }
     pub fn len(&self) -> usize {
         self.len as usize
     }
@@ -192,17 +194,6 @@ impl Mmap {
     }
 }
 
-#[repr(C)]
-pub struct MdHeader {
-    init_time: u64,
-    shut_time: u64,
-    max_messages: u64,
-    cnt_messages: u64,
-    rec_size: i32,
-    sesson_no: i32,
-    md_len: u64,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -226,14 +217,8 @@ mod tests {
 
     #[test]
     fn test_mmap() {
-        let mut map = Mmap::new("mdseries.bin", 2147483648, true, false);
+        //let mut map = Mmap::new("mdseries.bin", 2147483648, true, false);
+        let mut map = Mmap::new("mdseries.bin", 2147483648, true, true);
         println!("mmap open: {}", map.open());
-        if !map.is_null() {
-            let md = unsafe { &(*(map.base as *const MdHeader)) };
-            println!(
-                "MdHeader: rec_size({}) cnt({}) len({})",
-                md.rec_size, md.cnt_messages, md.md_len
-            );
-        }
     }
 }
