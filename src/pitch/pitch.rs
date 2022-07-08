@@ -118,13 +118,20 @@ pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
                 s.lower_limit,
                 s.upper_limit,
             );
+            let bytes = std::mem::MaybeUninit::<[u8; 8]>::uninit();
+            let mut bytes = unsafe { bytes.assume_init() };
+            bytes[..].copy_from_slice(&symbol[0..8]);
+            let sym_l = u64::from_le_bytes(bytes);
+            bytes[..].copy_from_slice(&symbol[8..]);
+            let sym_h = u64::from_le_bytes(bytes);
             let src = SymbolDirectoryNet {
                 tag,
                 index,
                 tracking,
                 timestamp,
                 market_category,
-                symbol,
+                sym_l,
+                sym_h,
                 classification,
                 precision,
                 lot_size,
@@ -289,7 +296,7 @@ pub struct SystemEvent {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct SymbolDirectory<'a> {
-    pub symbol: &'a str,
+    pub symbol: &'a [u8; 16],
     pub market_category: u8, //MarketCategory,
     pub classification: u8,  //IssueClassification,
     pub precision: u8,
@@ -385,13 +392,16 @@ impl<'a> From<SystemEventNet> for Message<'a> {
     }
 }
 
-impl<'a> From<SymbolDirectoryNet<'a>> for Message<'a> {
-    fn from(s: SymbolDirectoryNet<'a>) -> Message<'a> {
+impl<'a> From<SymbolDirectoryNet> for Message<'a> {
+    fn from(s: SymbolDirectoryNet) -> Message<'a> {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
-        let (market_category, symbol, classification, precision) =
-            (s.market_category, s.symbol, s.classification, s.precision);
+        let (market_category, sym_l, classification, precision) =
+            (s.market_category, s.sym_l, s.classification, s.precision);
         let (round_lot_size, turnover_multi, lower_limit, upper_limit) =
             (s.lot_size, s.turnover_multi, s.lower_limit, s.upper_limit);
+        let symp = &sym_l as *const u64;
+        let symp: *const [u8; 16] = symp.cast();
+        let symbol = unsafe { &(*symp) };
         let body = Body::<'a>::SymbolDirectory(SymbolDirectory {
             symbol,
             market_category,
@@ -645,5 +655,10 @@ mod tests {
         ];
         let msg: Message = from_bytes(&buf[..]).unwrap();
         assert_eq!(msg, expected);
+        let buf: Vec<u8> = vec![
+            b'R', 78, 99, 117, 49, 57, 48, 56, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 70, 0, 2, 0, 3, 0, 98,
+            116, 140, 58, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let _msg: Message = from_bytes(&buf[..]).unwrap();
     }
 }

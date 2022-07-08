@@ -28,11 +28,13 @@ impl SystemEventNet {
     }
 }
 
+#[repr(C)]
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SymbolDirectoryNet<'a> {
+pub struct SymbolDirectoryNet {
     pub tag: u8,
     pub market_category: u8,
-    pub symbol: &'a str,
+    pub sym_l: u64,
+    pub sym_h: u64,
     pub classification: u8,
     pub precision: u8,
     pub index: u16,
