@@ -129,6 +129,15 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         }
     }
 
+    fn serialize_u128(self, v: u128) -> Result<()> {
+        if self.output.free_space() < 16 {
+            Err(Error::NoBufs)
+        } else {
+            self.output += &v.to_le_bytes()[..];
+            Ok(())
+        }
+    }
+
     fn serialize_f32(self, _v: f32) -> Result<()> {
         Err(Error::Syntax)
     }

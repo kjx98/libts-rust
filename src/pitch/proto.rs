@@ -33,8 +33,7 @@ impl SystemEventNet {
 pub struct SymbolDirectoryNet {
     pub tag: u8,
     pub market_category: u8,
-    pub sym_l: u64,
-    pub sym_h: u64,
+    pub symbol: u128,
     pub classification: u8,
     pub precision: u8,
     pub index: u16,

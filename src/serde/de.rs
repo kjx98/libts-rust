@@ -1,6 +1,5 @@
 use serde::de::{self, DeserializeSeed, SeqAccess, Visitor};
 use serde::Deserialize;
-use std::mem;
 
 use super::error::{Error, Result};
 use crate::ClMessage;
@@ -83,14 +82,15 @@ impl<'de> Deserializer<'de> {
         }
     }
 
-    fn next_bytes<const N: usize>(&mut self) -> Result<[u8; N]> {
+    fn next_bytes<const N: usize>(&mut self) -> Result<&'de [u8; N]> {
         if self.input.len() < N {
             Err(Error::Eof)
         } else {
-            let bytes = mem::MaybeUninit::<[u8; N]>::uninit();
-            let mut bytes = unsafe { bytes.assume_init() };
-            bytes[..].copy_from_slice(&self.input[..N]);
-            (_, self.input) = self.input.split_at(N);
+            let (le, ri) = self.input.split_at(N);
+            self.input = ri;
+            let bp = le as *const [u8];
+            let bp: *const [u8; N] = bp.cast();
+            let bytes = unsafe { &*bp };
             Ok(bytes)
         }
     }
@@ -170,7 +170,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         let v = self.next_bytes::<2>()?;
-        visitor.visit_i16(i16::from_le_bytes(v))
+        visitor.visit_i16(i16::from_le_bytes(*v))
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
@@ -178,7 +178,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         let v = self.next_bytes::<4>()?;
-        visitor.visit_i32(i32::from_le_bytes(v))
+        visitor.visit_i32(i32::from_le_bytes(*v))
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
@@ -186,7 +186,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         let v = self.next_bytes::<8>()?;
-        visitor.visit_i64(i64::from_le_bytes(v))
+        visitor.visit_i64(i64::from_le_bytes(*v))
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
@@ -202,7 +202,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         let v = self.next_bytes::<2>()?;
-        visitor.visit_u16(u16::from_le_bytes(v))
+        visitor.visit_u16(u16::from_le_bytes(*v))
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
@@ -210,7 +210,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         let v = self.next_bytes::<4>()?;
-        visitor.visit_u32(u32::from_le_bytes(v))
+        visitor.visit_u32(u32::from_le_bytes(*v))
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
@@ -218,7 +218,15 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         let v = self.next_bytes::<8>()?;
-        visitor.visit_u64(u64::from_le_bytes(v))
+        visitor.visit_u64(u64::from_le_bytes(*v))
+    }
+
+    fn deserialize_u128<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        let v = self.next_bytes::<16>()?;
+        visitor.visit_u128(u128::from_le_bytes(*v))
     }
 
     // Float parsing is stupidly hard.

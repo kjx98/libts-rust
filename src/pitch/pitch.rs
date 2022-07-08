@@ -118,20 +118,17 @@ pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
                 s.lower_limit,
                 s.upper_limit,
             );
-            let bytes = std::mem::MaybeUninit::<[u8; 8]>::uninit();
+            let bytes = std::mem::MaybeUninit::<[u8; 16]>::uninit();
             let mut bytes = unsafe { bytes.assume_init() };
-            bytes[..].copy_from_slice(&symbol[0..8]);
-            let sym_l = u64::from_le_bytes(bytes);
-            bytes[..].copy_from_slice(&symbol[8..]);
-            let sym_h = u64::from_le_bytes(bytes);
+            bytes[..].copy_from_slice(&symbol[0..16]);
+            let symbol = u128::from_le_bytes(bytes);
             let src = SymbolDirectoryNet {
                 tag,
                 index,
                 tracking,
                 timestamp,
                 market_category,
-                sym_l,
-                sym_h,
+                symbol,
                 classification,
                 precision,
                 lot_size,
@@ -395,11 +392,11 @@ impl<'a> From<SystemEventNet> for Message<'a> {
 impl<'a> From<SymbolDirectoryNet> for Message<'a> {
     fn from(s: SymbolDirectoryNet) -> Message<'a> {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
-        let (market_category, sym_l, classification, precision) =
-            (s.market_category, s.sym_l, s.classification, s.precision);
+        let (market_category, symbol, classification, precision) =
+            (s.market_category, &s.symbol, s.classification, s.precision);
         let (round_lot_size, turnover_multi, lower_limit, upper_limit) =
             (s.lot_size, s.turnover_multi, s.lower_limit, s.upper_limit);
-        let symp = &sym_l as *const u64;
+        let symp = symbol as *const u128;
         let symp: *const [u8; 16] = symp.cast();
         let symbol = unsafe { &(*symp) };
         let body = Body::<'a>::SymbolDirectory(SymbolDirectory {
