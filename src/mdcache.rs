@@ -80,11 +80,18 @@ impl<'a> MdCache<'a> {
     pub fn msgs(&self) -> &[ClMessage] {
         self.msgs
     }
+    pub fn len(&self) -> usize {
+        self.md_header.cnt_messages as usize
+    }
+    pub fn cap(&self) -> usize {
+        self.md_header.max_messages as usize
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::measure::Measure;
 
     #[test]
     fn test_hp_path() {
@@ -127,7 +134,7 @@ mod tests {
         use crate::pitch::{from_bytes, Message};
         if let Ok(md) = MdCache::new() {
             let msgs = md.msgs;
-            for i in 0..2 {
+            for i in 0..20 {
                 println!("parse pitch: tag {:x}", msgs[i as usize].data()[0]);
                 let a_msg: Message = from_bytes(msgs[i as usize].data()).unwrap();
                 println!(
@@ -135,6 +142,27 @@ mod tests {
                     i, a_msg.index, a_msg.timestamp
                 );
             }
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn bench_md_pitch() {
+        use crate::pitch::{from_bytes, Message};
+        let mut measure = Measure::start("mdCache pitch bench");
+        let md = MdCache::new().unwrap();
+        let msgs = md.msgs;
+        let cnt = md.len();
+        for i in 0..cnt {
+            let _msg: Message = from_bytes(msgs[i].data()).unwrap();
+        }
+        measure.stop();
+        let ns_ops = measure.as_ns() / (cnt as u64);
+        println!("mdCache pitch msgs({}) cost {} ns per Op", cnt, ns_ops);
+        #[cfg(feature = "tsc")]
+        {
+            let ns_ops = measure.as_ticks() / (cnt as u64);
+            println!("mdCache pitch cost {} ticks per Op", ns_ops);
         }
     }
 }
