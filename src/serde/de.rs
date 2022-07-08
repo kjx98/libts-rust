@@ -110,6 +110,15 @@ impl<'de> Deserializer<'de> {
         }
     }
 
+    pub fn parse_nbytes<const N: usize>(&mut self) -> Result<&'de [u8]> {
+        if self.input.len() < N {
+            return Err(Error::Eof);
+        }
+        let (le, ri) = self.input.split_at(N);
+        self.input = ri;
+        Ok(le)
+    }
+
     // Parse a Pascal style utf8 string
     fn parse_string(&mut self) -> Result<&'de str> {
         let s = self.parse_bytes()?;
@@ -227,6 +236,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let v = self.next_bytes::<16>()?;
         visitor.visit_u128(u128::from_le_bytes(*v))
+    }
+
+    fn deserialize_u128<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        let v = self.next_bytes::<16>()?;
+        visitor.visit_u128(u128::from_le_bytes(v))
     }
 
     // Float parsing is stupidly hard.

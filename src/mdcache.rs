@@ -134,13 +134,10 @@ mod tests {
         use crate::pitch::{from_bytes, Message};
         if let Ok(md) = MdCache::new() {
             let msgs = md.msgs;
-            for i in 0..20 {
+            for i in 0..10 {
                 println!("parse pitch: tag {:x}", msgs[i as usize].data()[0]);
-                let a_msg: Message = from_bytes(msgs[i as usize].data()).unwrap();
-                println!(
-                    "No{}: index: {}, timestamp: {}",
-                    i, a_msg.index, a_msg.timestamp
-                );
+                let msg: Message = from_bytes(msgs[i as usize].data()).unwrap();
+                println!("No{}: {}", i, msg);
             }
         }
     }
