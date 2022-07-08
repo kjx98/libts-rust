@@ -110,7 +110,7 @@ pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
                 upper_limit,
             ) = (
                 s.market_category,
-                s.symbol,
+                s.symbol.as_bytes(),
                 s.classification,
                 s.precision,
                 s.round_lot_size,
@@ -118,9 +118,9 @@ pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
                 s.lower_limit,
                 s.upper_limit,
             );
-            let bytes = std::mem::MaybeUninit::<[u8; 16]>::uninit();
-            let mut bytes = unsafe { bytes.assume_init() };
-            bytes[..].copy_from_slice(&symbol[0..16]);
+            let mut bytes: [u8; 16] = Default::default();
+            let ll = if symbol.len() > 16 { 16 } else { symbol.len() };
+            bytes[..ll].copy_from_slice(&symbol[..ll]);
             let symbol = u128::from_le_bytes(bytes);
             let src = SymbolDirectoryNet {
                 tag,
@@ -293,7 +293,7 @@ pub struct SystemEvent {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct SymbolDirectory<'a> {
-    pub symbol: &'a [u8; 16],
+    pub symbol: &'a str,
     pub market_category: u8, //MarketCategory,
     pub classification: u8,  //IssueClassification,
     pub precision: u8,
@@ -398,7 +398,16 @@ impl<'a> From<SymbolDirectoryNet> for Message<'a> {
             (s.lot_size, s.turnover_multi, s.lower_limit, s.upper_limit);
         let symp = symbol as *const u128;
         let symp: *const [u8; 16] = symp.cast();
-        let symbol = unsafe { &(*symp) };
+        let symb = unsafe { &(*symp) };
+        let mut ll: usize = 16;
+        while ll > 0 {
+            if symb[ll - 1] != 0 {
+                break;
+            }
+            ll -= 1;
+        }
+        let symb = &symb[..ll];
+        let symbol = unsafe { std::str::from_utf8_unchecked(symb) };
         let body = Body::<'a>::SymbolDirectory(SymbolDirectory {
             symbol,
             market_category,
