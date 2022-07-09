@@ -119,16 +119,22 @@ mod tests {
 
     #[test]
     fn test_md_pitch() {
-        use crate::pitch::{from_bytes, Message};
+        use crate::pitch::{from_bytes, Body, Message};
         if let Ok(md) = MdCache::new() {
             let msgs = md.msgs;
-            for i in 0..2 {
+            for i in 0..10 {
                 println!("parse pitch: tag {:x}", msgs[i as usize].data()[0]);
                 let a_msg: Message = from_bytes(msgs[i as usize].data()).unwrap();
                 println!(
                     "No{}: index: {}, timestamp: {}",
                     i, a_msg.index, a_msg.timestamp
                 );
+                match a_msg.body {
+                    Body::SymbolDirectory(s) => {
+                        println!("symdir: {}", s.sym_name());
+                    }
+                    _ => {}
+                }
             }
         }
     }

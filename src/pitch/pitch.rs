@@ -17,7 +17,7 @@ use crate::{from_bytes as de_from_bytes, to_bytes as ser_to_bytes};
 /// Message Type
 ///    pub tag: u8
 #[derive(Debug, Clone, PartialEq)]
-pub struct Message<'a> {
+pub struct Message {
     /// Integer identifying the underlying instrument updated daily
     pub index: u16,
     /// internal tracking number
@@ -25,10 +25,10 @@ pub struct Message<'a> {
     /// Microseconds since Hours
     pub timestamp: u32,
     /// Body of one of the supported message types
-    pub body: Body<'a>,
+    pub body: Body,
 }
 
-pub fn from_bytes<'a>(buf: &'a [u8]) -> Result<Message<'a>> {
+pub fn from_bytes(buf: &[u8]) -> Result<Message> {
     if buf.len() < 8 {
         return Err(Error::Eof);
     }
@@ -38,8 +38,8 @@ pub fn from_bytes<'a>(buf: &'a [u8]) -> Result<Message<'a>> {
             Ok(Message::from(r))
         }
         b'R' => {
-            let r: SymbolDirectoryNet = de_from_bytes(buf)?;
-            Ok(Message::from(r))
+            let r: &SymbolDirectoryNet = SymbolDirectoryNet::from_bytes(buf)?;
+            Ok(Message::from(*r))
         }
         b'H' => {
             let r: SymbolTradingActionNet = de_from_bytes(buf)?;
@@ -81,7 +81,7 @@ pub fn from_bytes<'a>(buf: &'a [u8]) -> Result<Message<'a>> {
     }
 }
 
-pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
+pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
     let (index, tracking, timestamp) = (v.index, v.tracking, v.timestamp);
     match v.body {
         Body::SystemEvent(s) => {
@@ -110,7 +110,7 @@ pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
                 upper_limit,
             ) = (
                 s.market_category,
-                s.symbol.as_bytes(),
+                s.symbol,
                 s.classification,
                 s.precision,
                 s.round_lot_size,
@@ -118,10 +118,6 @@ pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
                 s.lower_limit,
                 s.upper_limit,
             );
-            let mut bytes: [u8; 16] = Default::default();
-            let ll = if symbol.len() > 16 { 16 } else { symbol.len() };
-            bytes[..ll].copy_from_slice(&symbol[..ll]);
-            let symbol = u128::from_le_bytes(bytes);
             let src = SymbolDirectoryNet {
                 tag,
                 index,
@@ -136,7 +132,7 @@ pub fn to_bytes<'a>(v: &'a Message) -> Result<Vec<u8>> {
                 lower_limit,
                 upper_limit,
             };
-            ser_to_bytes(&src)
+            SymbolDirectoryNet::to_bytes(&src)
         }
         Body::TradingAction(s) => {
             let tag = b'H';
@@ -292,8 +288,9 @@ pub struct SystemEvent {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct SymbolDirectory<'a> {
-    pub symbol: &'a str,
+pub struct SymbolDirectory {
+    pub sym_len: u8,
+    pub symbol: [u8; 16],
     pub market_category: u8, //MarketCategory,
     pub classification: u8,  //IssueClassification,
     pub precision: i8,
@@ -301,6 +298,14 @@ pub struct SymbolDirectory<'a> {
     pub turnover_multi: u32,
     pub lower_limit: i32,
     pub upper_limit: i32,
+}
+
+impl SymbolDirectory {
+    pub fn sym_name(&self) -> &str {
+        let ll = self.sym_len as usize;
+        let res = unsafe { std::str::from_utf8_unchecked(&self.symbol[..ll]) };
+        res
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -374,12 +379,12 @@ pub struct CrossTrade {
     pub open_interest: u32,
 }
 
-impl<'a> From<SystemEventNet> for Message<'a> {
-    fn from(s: SystemEventNet) -> Message<'a> {
+impl From<SystemEventNet> for Message {
+    fn from(s: SystemEventNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let event = s.event();
         let time_hours = s.time_hours;
-        let body = Body::<'a>::SystemEvent(SystemEvent { event, time_hours });
+        let body = Body::SystemEvent(SystemEvent { event, time_hours });
         Message {
             index,
             tracking,
@@ -389,26 +394,23 @@ impl<'a> From<SystemEventNet> for Message<'a> {
     }
 }
 
-impl<'a> From<SymbolDirectoryNet> for Message<'a> {
-    fn from(s: SymbolDirectoryNet) -> Message<'a> {
+impl From<SymbolDirectoryNet> for Message {
+    fn from(s: SymbolDirectoryNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (market_category, symbol, classification, precision) =
-            (s.market_category, &s.symbol, s.classification, s.precision);
+            (s.market_category, s.symbol, s.classification, s.precision);
         let (round_lot_size, turnover_multi, lower_limit, upper_limit) =
             (s.lot_size, s.turnover_multi, s.lower_limit, s.upper_limit);
-        let symp = symbol as *const u128;
-        let symp: *const [u8; 16] = symp.cast();
-        let symb = unsafe { &(*symp) };
-        let mut ll: usize = 16;
+        let mut ll = 16;
         while ll > 0 {
-            if symb[ll - 1] != 0 {
+            if symbol[ll - 1] != 0 {
                 break;
             }
-            ll -= 1;
+            ll -= 1
         }
-        let symb = &symb[..ll];
-        let symbol = unsafe { std::str::from_utf8_unchecked(symb) };
-        let body = Body::<'a>::SymbolDirectory(SymbolDirectory {
+        let sym_len = ll as u8;
+        let body = Body::SymbolDirectory(SymbolDirectory {
+            sym_len,
             symbol,
             market_category,
             classification,
@@ -427,12 +429,12 @@ impl<'a> From<SymbolDirectoryNet> for Message<'a> {
     }
 }
 
-impl<'a> From<SymbolTradingActionNet> for Message<'a> {
-    fn from(s: SymbolTradingActionNet) -> Message<'a> {
+impl From<SymbolTradingActionNet> for Message {
+    fn from(s: SymbolTradingActionNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let trading_state = s.state();
         let reason = s.reason;
-        let body = Body::<'a>::TradingAction(TradingAction {
+        let body = Body::TradingAction(TradingAction {
             trading_state,
             reason,
         });
@@ -445,12 +447,12 @@ impl<'a> From<SymbolTradingActionNet> for Message<'a> {
     }
 }
 
-impl<'a> From<AddOrderNet> for Message<'a> {
-    fn from(s: AddOrderNet) -> Message<'a> {
+impl From<AddOrderNet> for Message {
+    fn from(s: AddOrderNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (reference, qty, price) = (s.ref_no, s.qty, s.price);
         let side = s.side();
-        let body = Body::<'a>::AddOrder(AddOrder {
+        let body = Body::AddOrder(AddOrder {
             reference,
             side,
             qty,
@@ -465,11 +467,11 @@ impl<'a> From<AddOrderNet> for Message<'a> {
     }
 }
 
-impl<'a> From<OrderExecutedNet> for Message<'a> {
-    fn from(s: OrderExecutedNet) -> Message<'a> {
+impl From<OrderExecutedNet> for Message {
+    fn from(s: OrderExecutedNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (printable, reference, qty, match_no) = (s.printable, s.ref_no, s.qty, s.match_no);
-        let body = Body::<'a>::OrderExecuted(OrderExecuted {
+        let body = Body::OrderExecuted(OrderExecuted {
             printable,
             reference,
             qty,
@@ -484,12 +486,12 @@ impl<'a> From<OrderExecutedNet> for Message<'a> {
     }
 }
 
-impl<'a> From<OrderExecutedWithPriceNet> for Message<'a> {
-    fn from(s: OrderExecutedWithPriceNet) -> Message<'a> {
+impl From<OrderExecutedWithPriceNet> for Message {
+    fn from(s: OrderExecutedWithPriceNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (printable, reference, qty, match_no, price) =
             (s.printable, s.ref_no, s.qty, s.match_no, s.price);
-        let body = Body::<'a>::OrderExecutedWithPrice(OrderExecutedWithPrice {
+        let body = Body::OrderExecutedWithPrice(OrderExecutedWithPrice {
             printable,
             reference,
             qty,
@@ -505,11 +507,11 @@ impl<'a> From<OrderExecutedWithPriceNet> for Message<'a> {
     }
 }
 
-impl<'a> From<OrderCancelNet> for Message<'a> {
-    fn from(s: OrderCancelNet) -> Message<'a> {
+impl From<OrderCancelNet> for Message {
+    fn from(s: OrderCancelNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (reason, reference, cancelled) = (s.reason(), s.ref_no, s.qty);
-        let body = Body::<'a>::OrderCancelled(OrderCancelled {
+        let body = Body::OrderCancelled(OrderCancelled {
             reason,
             reference,
             cancelled,
@@ -523,11 +525,11 @@ impl<'a> From<OrderCancelNet> for Message<'a> {
     }
 }
 
-impl<'a> From<OrderDeleteNet> for Message<'a> {
-    fn from(s: OrderDeleteNet) -> Message<'a> {
+impl From<OrderDeleteNet> for Message {
+    fn from(s: OrderDeleteNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (reason, reference) = (s.reason(), s.ref_no);
-        let body = Body::<'a>::OrderDelete(OrderDelete { reason, reference });
+        let body = Body::OrderDelete(OrderDelete { reason, reference });
         Message {
             index,
             tracking,
@@ -537,12 +539,12 @@ impl<'a> From<OrderDeleteNet> for Message<'a> {
     }
 }
 
-impl<'a> From<OrderReplaceNet> for Message<'a> {
-    fn from(s: OrderReplaceNet) -> Message<'a> {
+impl From<OrderReplaceNet> for Message {
+    fn from(s: OrderReplaceNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (qty, price) = (s.qty, s.price);
         let (old_reference, new_reference) = (s.ref_no, s.new_ref_no);
-        let body = Body::<'a>::ReplaceOrder(ReplaceOrder {
+        let body = Body::ReplaceOrder(ReplaceOrder {
             old_reference,
             new_reference,
             qty,
@@ -557,12 +559,12 @@ impl<'a> From<OrderReplaceNet> for Message<'a> {
     }
 }
 
-impl<'a> From<TradeNet> for Message<'a> {
-    fn from(s: TradeNet) -> Message<'a> {
+impl From<TradeNet> for Message {
+    fn from(s: TradeNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (reference, qty, price, match_no) = (s.ref_no, s.qty, s.price, s.match_no);
         let side = s.side();
-        let body = Body::<'a>::Trade(Trade {
+        let body = Body::Trade(Trade {
             reference,
             side,
             qty,
@@ -578,13 +580,13 @@ impl<'a> From<TradeNet> for Message<'a> {
     }
 }
 
-impl<'a> From<CrossTradeNet> for Message<'a> {
-    fn from(s: CrossTradeNet) -> Message<'a> {
+impl From<CrossTradeNet> for Message {
+    fn from(s: CrossTradeNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (qty, price, match_no) = (s.qty, s.price, s.match_no);
         let cross_type = s.cross_type();
         let (pclose, open_interest) = (s.pclose, s.open_interest);
-        let body = Body::<'a>::CrossTrade(CrossTrade {
+        let body = Body::CrossTrade(CrossTrade {
             qty,
             price,
             match_no,
@@ -603,9 +605,9 @@ impl<'a> From<CrossTradeNet> for Message<'a> {
 
 /// The message body. Refer to the protocol spec for interpretation.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Body<'a> {
+pub enum Body {
     SystemEvent(SystemEvent),
-    SymbolDirectory(SymbolDirectory<'a>),
+    SymbolDirectory(SymbolDirectory),
     TradingAction(TradingAction),
     AddOrder(AddOrder),
     OrderExecuted(OrderExecuted),

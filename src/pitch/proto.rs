@@ -1,4 +1,5 @@
 use super::enums::{CancelReason, CrossType, EventCode, Side, TradingState};
+use crate::serde::{Error, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Default, Copy, Clone, PartialEq, Eq)]
@@ -30,7 +31,7 @@ impl SystemEventNet {
 
 #[repr(C)]
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SymbolDirectoryNet {
+pub struct SymbolDirNet {
     pub tag: u8,
     pub market_category: u8,
     pub symbol: u128,
@@ -43,6 +44,40 @@ pub struct SymbolDirectoryNet {
     pub turnover_multi: u32,
     pub lower_limit: i32,
     pub upper_limit: i32,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SymbolDirectoryNet {
+    pub tag: u8,
+    pub market_category: u8,
+    pub symbol: [u8; 16],
+    pub classification: u8,
+    pub precision: i8,
+    pub index: u16,
+    pub tracking: u16,
+    pub timestamp: u32,
+    pub lot_size: u32,
+    pub turnover_multi: u32,
+    pub lower_limit: i32,
+    pub upper_limit: i32,
+}
+
+impl SymbolDirectoryNet {
+    pub fn from_bytes(buf: &[u8]) -> Result<&SymbolDirectoryNet> {
+        use std::mem;
+        if buf.len() < mem::size_of::<SymbolDirectoryNet>() {
+            return Err(Error::Eof);
+        }
+        let res: &SymbolDirectoryNet = unsafe { mem::transmute(&buf[0]) };
+        Ok(res)
+    }
+    pub fn to_bytes(s: &SymbolDirectoryNet) -> Result<Vec<u8>> {
+        use std::mem;
+        const SD_LEN: usize = mem::size_of::<SymbolDirectoryNet>();
+        let res: &[u8; SD_LEN] = unsafe { mem::transmute(&s) };
+        Ok(res.to_vec())
+    }
 }
 
 #[derive(Deserialize, Serialize, Default, Copy, Clone, PartialEq, Eq)]
@@ -243,6 +278,7 @@ mod tests {
             "sizeof SymbolDirectoryNet: {}",
             mem::size_of::<SymbolDirectoryNet>()
         );
+        println!("sizeof SymbolDirNet: {}", mem::size_of::<SymbolDirNet>());
     }
 
     #[test]
