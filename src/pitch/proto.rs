@@ -237,6 +237,15 @@ mod tests {
     }
 
     #[test]
+    fn test_symboldir() {
+        use std::mem;
+        println!(
+            "sizeof SymbolDirectoryNet: {}",
+            mem::size_of::<SymbolDirectoryNet>()
+        );
+    }
+
+    #[test]
     fn test_state() {
         let mut sym_tr: SymbolTradingActionNet = Default::default();
         sym_tr.trading_state = TradingState::PreAuction as u8;
