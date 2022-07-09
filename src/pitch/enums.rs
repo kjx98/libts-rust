@@ -42,6 +42,21 @@ pub enum MarketCategory {
     Unavailable = 0u8 as isize,
 }
 
+impl fmt::Display for MarketCategory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MarketCategory::Shfe => write!(f, "Shanghai Futures Exchange"),
+            MarketCategory::Dce => write!(f, "DCE"),
+            MarketCategory::Czce => write!(f, "CZCE"),
+            MarketCategory::Cffex => write!(f, "CFFEX"),
+            MarketCategory::Gce => write!(f, "GCE"),
+            MarketCategory::Sse => write!(f, "SSE"),
+            MarketCategory::Szse => write!(f, "SZSE"),
+            _ => write!(f, "Uknown"),
+        }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum IssueClassification {

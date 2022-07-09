@@ -35,7 +35,7 @@ pub struct SymbolDirectoryNet {
     pub market_category: u8,
     pub symbol: u128,
     pub classification: u8,
-    pub precision: u8,
+    pub precision: i8,
     pub index: u16,
     pub tracking: u16,
     pub timestamp: u32,

@@ -94,6 +94,14 @@ impl Add for UnixTime {
     }
 }
 
+impl Add<u64> for UnixTime {
+    type Output = UnixTime;
+    fn add(self, rhs: u64) -> UnixTime {
+        let (sec, _) = u64_add(self.0, rhs);
+        UnixTime(sec)
+    }
+}
+
 impl AddAssign for UnixTime {
     fn add_assign(&mut self, rhs: UnixTime) {
         (self.0, _) = u64_add(self.0, rhs.0);

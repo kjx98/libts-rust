@@ -296,7 +296,7 @@ pub struct SymbolDirectory<'a> {
     pub symbol: &'a str,
     pub market_category: u8, //MarketCategory,
     pub classification: u8,  //IssueClassification,
-    pub precision: u8,
+    pub precision: i8,
     pub round_lot_size: u32,
     pub turnover_multi: u32,
     pub lower_limit: i32,

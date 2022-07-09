@@ -97,13 +97,17 @@ impl Add for TimeVal {
     type Output = TimeVal;
     fn add(self, rhs: TimeVal) -> TimeVal {
         let nano = self.nano + rhs.nano;
-        let cc: u64 = if nano < TS3_TIME_NANO { 0 } else { 1 };
+        let sec = if nano < TS3_TIME_NANO {
+            rhs.sec
+        } else {
+            rhs.sec + 1
+        };
         let nano = if nano < TS3_TIME_NANO {
             nano
         } else {
             nano - Dur::Nano as u32
         };
-        let (sec, _) = u64_add(self.sec, rhs.sec + cc);
+        let (sec, _) = u64_add(self.sec, sec);
         TimeVal { sec, nano }
     }
 }
@@ -111,13 +115,17 @@ impl Add for TimeVal {
 impl AddAssign for TimeVal {
     fn add_assign(&mut self, rhs: TimeVal) {
         let nano = self.nano + rhs.nano;
-        let cc: u64 = if nano < TS3_TIME_NANO { 0 } else { 1 };
+        let sec = if nano < TS3_TIME_NANO {
+            rhs.sec
+        } else {
+            rhs.sec + 1
+        };
         self.nano = if nano < TS3_TIME_NANO {
             nano
         } else {
             nano - TS3_TIME_NANO
         };
-        (self.sec, _) = u64_add(self.sec, rhs.sec + cc);
+        (self.sec, _) = u64_add(self.sec, sec);
     }
 }
 
@@ -127,13 +135,17 @@ impl Add<u64> for TimeVal {
         let sec = rhs / TS3_TIME_NANO as u64;
         let nano = (rhs % TS3_TIME_NANO as u64) as u32;
         let nano = self.nano + nano;
-        let cc: u64 = if nano < Dur::Nano as u32 { 0 } else { 1 };
+        let sec = if nano < Dur::Nano as u32 {
+            sec
+        } else {
+            sec + 1
+        };
         let nano = if nano < Dur::Nano as u32 {
             nano
         } else {
             nano - Dur::Nano as u32
         };
-        let (sec, _) = u64_add(self.sec, sec + cc);
+        let (sec, _) = u64_add(self.sec, sec);
         TimeVal { sec, nano }
     }
 }
@@ -143,13 +155,13 @@ impl AddAssign<u64> for TimeVal {
         let sec = rhs / TS3_TIME_NANO as u64;
         let nano = (rhs % TS3_TIME_NANO as u64) as u32;
         let nano = self.nano + nano;
-        let cc: u64 = if nano < TS3_TIME_NANO { 0 } else { 1 };
+        let sec = if nano < TS3_TIME_NANO { sec } else { sec + 1 };
         self.nano = if nano < TS3_TIME_NANO {
             nano
         } else {
             nano - TS3_TIME_NANO
         };
-        (self.sec, _) = u64_add(self.sec, sec + cc);
+        (self.sec, _) = u64_add(self.sec, sec);
     }
 }
 
@@ -187,6 +199,10 @@ impl TimeVal {
         };
         let nano = nano % TS3_TIME_NANO;
         TimeVal { sec, nano }
+    }
+    pub const fn from_hours(hr: u32) -> TimeVal {
+        let sec: u64 = hr as u64 * 3600;
+        TimeVal { sec, nano: 0 }
     }
     #[must_use]
     #[inline]

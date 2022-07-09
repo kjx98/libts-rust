@@ -93,6 +93,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_mmap() {
         if let Ok(md) = MdHeader::new() {
             println!(
