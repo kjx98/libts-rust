@@ -29,7 +29,7 @@ impl SystemEventNet {
 }
 
 #[repr(C)]
-#[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct SymbolDirectoryNet {
     pub tag: u8,
     pub market_category: u8,
