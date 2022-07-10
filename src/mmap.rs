@@ -28,6 +28,17 @@ pub fn hp_path(fb: &str) -> Result<String> {
     let mut it = ss.lines();
     let mut sf_len = 0u64;
     let mut res = String::new();
+    {
+        let fpath = "/dev/shm/".to_owned() + fb;
+        if file_readable(&fpath) {
+            #[cfg(test)]
+            println!("may use {} as shared memory path", &fpath);
+            let flen = file_len(&fpath)?;
+            if flen >= sf_len {
+                sf_len = flen;
+            }
+        }
+    }
     while let Some(aline) = it.next() {
         let v: Vec<&str> = aline.split(' ').collect();
         if v.len() < 4 {
@@ -55,6 +66,7 @@ pub fn hp_path(fb: &str) -> Result<String> {
             }
         }
     }
+    _ = file_len(&res)?;
     #[cfg(test)]
     if res.len() > 0 {
         println!("selected {} size({}) as shared memory", &res, sf_len);
@@ -82,18 +94,19 @@ impl Mmap {
     pub fn new(fp: &str, len: u64, hugepage: bool, read_only: bool) -> Mmap {
         let len = len as size_t;
         let base = 0 as *mut c_void;
-        let flags: c_int = if hugepage {
-            libc::MAP_HUGETLB | libc::MAP_POPULATE
+        let mut flags: c_int = if hugepage {
+            libc::MAP_SHARED | libc::MAP_HUGETLB | libc::MAP_POPULATE
         } else {
-            0
+            libc::MAP_SHARED
         };
         let path = if !hugepage {
-            "/dev/mem/".to_owned() + fp
+            "/dev/shm/".to_owned() + fp
         } else {
             if let Ok(ss) = hp_path(fp) {
                 ss
             } else {
-                "/dev/mem/".to_owned() + fp
+                flags = libc::MAP_SHARED;
+                "/dev/shm/".to_owned() + fp
             }
         };
         Mmap {

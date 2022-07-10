@@ -84,7 +84,7 @@ pub fn from_bytes(buf: &[u8]) -> Result<Message> {
 pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
     let (index, tracking, timestamp) = (v.index, v.tracking, v.timestamp);
     match &v.body {
-        &Body::SystemEvent(s) => {
+        Body::SystemEvent(s) => {
             let tag = b'S';
             let (event_code, time_hours) = (s.event as u8, s.time_hours);
             let src = SystemEventNet {
@@ -97,11 +97,11 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
             };
             ser_to_bytes(&src)
         }
-        &Body::SymbolDirectory(s) => {
+        Body::SymbolDirectory(s) => {
             let tag = b'R';
             let (
                 market_category,
-                symbol,
+                symb,
                 classification,
                 precision,
                 lot_size,
@@ -110,7 +110,7 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
                 upper_limit,
             ) = (
                 s.market_category,
-                s.symbol,
+                s.symbol.as_bytes(),
                 s.classification,
                 s.precision,
                 s.round_lot_size,
@@ -118,6 +118,12 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
                 s.lower_limit,
                 s.upper_limit,
             );
+            let mut symbol: [u8; 16] = Default::default();
+            let ll = symb.len();
+            if ll > 0 {
+                let ll = if ll > 16 { 16 } else { ll };
+                symbol[..ll].copy_from_slice(&symb);
+            }
             let src = SymbolDirectoryNet {
                 tag,
                 index,
@@ -134,7 +140,7 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
             };
             SymbolDirectoryNet::to_bytes(&src)
         }
-        &Body::TradingAction(s) => {
+        Body::TradingAction(s) => {
             let tag = b'H';
             let (trading_state, reason) = (s.trading_state as u8, s.reason);
             let src = SymbolTradingActionNet {
@@ -147,7 +153,7 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
             };
             ser_to_bytes(&src)
         }
-        &Body::AddOrder(s) => {
+        Body::AddOrder(s) => {
             let tag = b'A';
             let (buy_sell, ref_no) = (s.side as u8, s.reference);
             let (qty, price) = (s.qty, s.price);
@@ -163,7 +169,7 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
             };
             ser_to_bytes(&src)
         }
-        &Body::OrderExecuted(s) => {
+        Body::OrderExecuted(s) => {
             let tag = b'E';
             let (printable, ref_no) = (s.printable, s.reference);
             let (qty, match_no) = (s.qty, s.match_no);
@@ -179,7 +185,7 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
             };
             ser_to_bytes(&src)
         }
-        &Body::OrderExecutedWithPrice(s) => {
+        Body::OrderExecutedWithPrice(s) => {
             let tag = b'C';
             let (printable, ref_no, qty, price, match_no) =
                 (s.printable, s.reference, s.qty, s.price, s.match_no);
@@ -196,7 +202,7 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
             };
             ser_to_bytes(&src)
         }
-        &Body::OrderCancelled(s) => {
+        Body::OrderCancelled(s) => {
             let tag = b'X';
             let cancel_reason = s.reason as u8;
             let (ref_no, qty) = (s.reference, s.cancelled);
@@ -211,7 +217,7 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
             };
             ser_to_bytes(&src)
         }
-        &Body::OrderDelete(s) => {
+        Body::OrderDelete(s) => {
             let tag = b'D';
             let (cancel_reason, ref_no) = (s.reason as u8, s.reference);
             let src = OrderDeleteNet {
@@ -224,7 +230,7 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
             };
             ser_to_bytes(&src)
         }
-        &Body::ReplaceOrder(s) => {
+        Body::ReplaceOrder(s) => {
             let tag = b'U';
             let (ref_no, new_ref_no, qty, price) =
                 (s.old_reference, s.new_reference, s.qty, s.price);
@@ -240,7 +246,7 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
             };
             ser_to_bytes(&src)
         }
-        &Body::Trade(s) => {
+        Body::Trade(s) => {
             let tag = b'P';
             let (buy_sell, ref_no, qty, price, match_no) =
                 (s.side as u8, s.reference, s.qty, s.price, s.match_no);
@@ -257,7 +263,7 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
             };
             ser_to_bytes(&src)
         }
-        &Body::CrossTrade(s) => {
+        Body::CrossTrade(s) => {
             let tag = b'Q';
             let (qty, price) = (s.qty, s.price);
             let (match_no, type_) = (s.match_no, s.cross_type as u8);
@@ -287,10 +293,9 @@ pub struct SystemEvent {
     pub time_hours: u32,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SymbolDirectory {
-    pub sym_len: u8,
-    pub symbol: [u8; 16],
+    pub symbol: String,
     pub market_category: u8, //MarketCategory,
     pub classification: u8,  //IssueClassification,
     pub precision: i8,
@@ -300,21 +305,13 @@ pub struct SymbolDirectory {
     pub upper_limit: i32,
 }
 
-impl SymbolDirectory {
-    pub fn sym_name(&self) -> &str {
-        let ll = self.sym_len as usize;
-        let res = unsafe { std::str::from_utf8_unchecked(&self.symbol[..ll]) };
-        res
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct TradingAction {
     pub trading_state: TradingState,
     pub reason: u16, //String,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AddOrder {
     pub reference: u64,
     pub side: Side,
@@ -322,7 +319,7 @@ pub struct AddOrder {
     pub price: i32,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct OrderExecuted {
     pub printable: bool,
     pub reference: u64,
@@ -330,7 +327,7 @@ pub struct OrderExecuted {
     pub match_no: u64,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct OrderExecutedWithPrice {
     pub printable: bool,
     pub reference: u64,
@@ -339,20 +336,20 @@ pub struct OrderExecutedWithPrice {
     pub match_no: u64,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct OrderCancelled {
     pub reason: CancelReason,
     pub reference: u64,
     pub cancelled: u32,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct OrderDelete {
     pub reason: CancelReason,
     pub reference: u64,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ReplaceOrder {
     pub old_reference: u64,
     pub new_reference: u64,
@@ -360,7 +357,7 @@ pub struct ReplaceOrder {
     pub price: i32,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Trade {
     pub reference: u64,
     pub side: Side,
@@ -369,7 +366,7 @@ pub struct Trade {
     pub match_no: u64,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CrossTrade {
     pub qty: u32,
     pub price: i32,
@@ -398,7 +395,7 @@ impl From<SymbolDirectoryNet> for Message {
     fn from(s: SymbolDirectoryNet) -> Message {
         let (index, tracking, timestamp) = (s.index, s.tracking, s.timestamp);
         let (market_category, symbol, classification, precision) =
-            (s.market_category, s.symbol, s.classification, s.precision);
+            (s.market_category, &s.symbol, s.classification, s.precision);
         let (round_lot_size, turnover_multi, lower_limit, upper_limit) =
             (s.lot_size, s.turnover_multi, s.lower_limit, s.upper_limit);
         let mut ll = 16;
@@ -408,9 +405,9 @@ impl From<SymbolDirectoryNet> for Message {
             }
             ll -= 1
         }
-        let sym_len = ll as u8;
+        let res = unsafe { std::str::from_utf8_unchecked(&s.symbol[..ll]) };
+        let symbol = res.to_owned();
         let body = Body::SymbolDirectory(SymbolDirectory {
-            sym_len,
             symbol,
             market_category,
             classification,
