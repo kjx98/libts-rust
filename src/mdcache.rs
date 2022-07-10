@@ -129,8 +129,8 @@ mod tests {
                     "No{}: index: {}, timestamp: {}",
                     i, a_msg.index, a_msg.timestamp
                 );
-                match a_msg.body {
-                    Body::SymbolDirectory(s) => {
+                match &a_msg.body {
+                    &Body::SymbolDirectory(s) => {
                         println!("symdir: {}", s.sym_name());
                     }
                     _ => {}
