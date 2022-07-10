@@ -34,7 +34,11 @@ impl fmt::Display for MdHeader {
 impl MdHeader {
     pub fn new() -> Result<MdHeader> {
         use std::mem::MaybeUninit;
-        let fpath = hp_path(MDSERIES_PATH)?;
+        let fpath = if let Ok(fp) = hp_path(MDSERIES_PATH) {
+            fp
+        } else {
+            "/dev/shm/".to_owned() + MDSERIES_PATH
+        };
         let mut fd = File::open(&fpath)?;
         let mut buf = unsafe { MaybeUninit::<[u8; 64]>::uninit().assume_init() };
         let _rlen = fd.read(&mut buf[..])?;
@@ -55,7 +59,7 @@ pub struct MdCache<'a> {
 impl<'a> MdCache<'a> {
     pub fn new() -> Result<MdCache<'a>> {
         let md = MdHeader::new()?;
-        let mut mmap = Mmap::new(MDSERIES_PATH, md.md_len, true, false);
+        let mut mmap = Mmap::new(MDSERIES_PATH, md.md_len, true, true);
         if !mmap.open() {
             return Err(Error::from(ErrorKind::UnexpectedEof));
         }
@@ -93,7 +97,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_mmap() {
         if let Ok(md) = MdHeader::new() {
             println!(
@@ -103,7 +106,8 @@ mod tests {
             let mut map = Mmap::new("mdseries.bin", md.md_len, true, true);
             map.open();
             assert!(!map.is_null());
-            let _md = unsafe { &(*(map.mut_ptr() as *const MdHeader)) };
+            let md = unsafe { &(*(map.mut_ptr() as *const MdHeader)) };
+            println!("MdHeader: {}", md);
         } else {
             assert!(false, "MdHeader::new()");
         }
@@ -118,6 +122,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_md_pitch() {
         use crate::pitch::{from_bytes, Message};
         if let Ok(md) = MdCache::new() {
