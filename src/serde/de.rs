@@ -110,6 +110,15 @@ impl<'de> Deserializer<'de> {
         }
     }
 
+    pub fn parse_nbytes<const N: usize>(&mut self) -> Result<&'de [u8]> {
+        if self.input.len() < N {
+            return Err(Error::Eof);
+        }
+        let (le, ri) = self.input.split_at(N);
+        self.input = ri;
+        Ok(le)
+    }
+
     // Parse a Pascal style utf8 string
     fn parse_string(&mut self) -> Result<&'de str> {
         let s = self.parse_bytes()?;

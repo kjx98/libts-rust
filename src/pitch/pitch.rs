@@ -11,7 +11,7 @@ use super::super::serde::{Error, Result};
 use super::enums::*;
 use super::proto::*;
 use crate::{from_bytes as de_from_bytes, to_bytes as ser_to_bytes};
-//use std::fmt;
+use std::fmt;
 
 /// An PITCH protocol message. Refer to the protocol spec for interpretation.
 /// Message Type
@@ -282,6 +282,20 @@ pub fn to_bytes(v: &Message) -> Result<Vec<u8>> {
             };
             ser_to_bytes(&src)
         }
+    }
+}
+
+impl fmt::Display for Message {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mm = self.timestamp / 60_000_000u32;
+        let ss = self.timestamp % 60_000_000u32;
+        let us = ss % 1_000_000u32;
+        let ss = ss / 1_000_000u32;
+        write!(
+            f,
+            "(index: {}, tracking: {}, timestamp: {:02}:{:02}.{:06})",
+            self.index, self.tracking, mm, ss, us
+        )
     }
 }
 
