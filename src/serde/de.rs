@@ -238,14 +238,6 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_u128(u128::from_le_bytes(*v))
     }
 
-    fn deserialize_u128<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        let v = self.next_bytes::<16>()?;
-        visitor.visit_u128(u128::from_le_bytes(v))
-    }
-
     // Float parsing is stupidly hard.
     fn deserialize_f32<V>(self, _visitor: V) -> Result<V::Value>
     where
