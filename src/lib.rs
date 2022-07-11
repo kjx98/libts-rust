@@ -18,7 +18,7 @@ mod unix_time;
 pub mod x86;
 
 pub use crate::serde::{from_bytes, from_msg, to_bytes, to_msg};
-pub use datetime::{DateTime, DateTimeMs, DateTimeUs};
+pub use datetime::{DateTime, DateTimeMs, DateTimeSec, DateTimeUs};
 pub use julian::Julian;
 pub use mmap::Mmap;
 pub use msg::ClMessage;
