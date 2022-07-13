@@ -192,21 +192,18 @@ impl Mmap {
         let slice = unsafe { &(*std::ptr::slice_from_raw_parts(self.base as *const u8, self.len)) };
         Ok(slice)
     }
-    pub fn as_slice<T: Sized>(&self) -> Option<&[T]> {
+    pub fn as_slice<T: Sized>(&self) -> Result<&[T]> {
         if self.base.is_null() {
-            return None;
+            return Err(Error::from(ErrorKind::UnexpectedEof));
         }
         let slen = std::mem::size_of::<T>();
-        if slen == 0 {
-            return None;
-        }
         let slen = self.len() / slen;
         if slen == 0 {
-            return None;
+            return Err(Error::from(ErrorKind::UnexpectedEof));
         }
         let addr = self.base as *const T;
         let slice = unsafe { &(*std::ptr::slice_from_raw_parts(addr, slen)) };
-        Some(slice)
+        Ok(slice)
     }
 }
 
